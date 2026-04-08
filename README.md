@@ -1,3 +1,3 @@
 # 691SIM
 
-This is a simulator for FRC, allowing for testing both electrical and code for subsystems. 
+This is an easy way to mock-up runnable code for FRC, to test any specific subsystems through block coding.
