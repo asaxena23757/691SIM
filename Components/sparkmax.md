@@ -12,7 +12,7 @@
 | :--- | :--- | :--- | :---: | :---: | :--- |
 | `main_pwr` | `POWER` | `INPUT` | Yes | `1` | 12/100 |
 | `motor_pwr` | `POWER` | `OUTPUT` | NO | `1` | 12/60 |
-| `motor_oout` | `PWM` | `BIDIRECTIONAL` | Yes | `1` | 0/0 |
+| `motor_out` | `PWM` | `BIDIRECTIONAL` | Yes | `1` | 0/0 |
 | `can_bus_0`| `CAN` | `BIDIRECTIONAL`| YES | `1` | 0/0 |
 | `usb_c` | `CAN`| `BIDIRECTIONAL`| No | `1` | 0/0 |
 
