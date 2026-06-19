@@ -1,0 +1,21 @@
+{
+  "name": "@691sim/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'Tauri/React dev server wired up in Phase 6' && exit 0",
+    "build": "echo 'Tauri/React build wired up in Phase 6' && exit 0",
+    "typecheck": "tsc -b --pretty"
+  },
+  "dependencies": {
+    "@691sim/core": "workspace:*",
+    "@691sim/registry": "workspace:*",
+    "@691sim/verifier": "workspace:*",
+    "@691sim/estimator": "workspace:*",
+    "@691sim/serialization": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

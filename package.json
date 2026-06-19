@@ -1,0 +1,29 @@
+{
+  "name": "691sim",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "FRC Architecture Verifier - monorepo root",
+  "scripts": {
+    "build": "pnpm -r --filter=./packages/* run build",
+    "dev": "pnpm -r --filter=./packages/* run dev",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b --pretty"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/node": "^22.10.5",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.19.1",
+    "vitest": "^2.1.8"
+  },
+  "packageManager": "pnpm@9.15.0"
+}
