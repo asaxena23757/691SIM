@@ -1,11 +1,14 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/core" },
+    { "path": "packages/core/src" },
     { "path": "packages/registry" },
     { "path": "packages/verifier" },
     { "path": "packages/estimator" },
     { "path": "packages/serialization" },
     { "path": "apps/desktop" }
-  ]
+  ],
+  "compilerOptions": {
+    "types": ["node"]
+  }
 }

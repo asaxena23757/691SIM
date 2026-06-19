@@ -6,7 +6,7 @@ import {
     PortDirection, 
     Requirement, 
     Vector 
-} from './types'; // Adjust this path based on your folder structure
+} from './types';
 
 /**
  * Base implementation of a standard Hardware Module extending HardwareModel

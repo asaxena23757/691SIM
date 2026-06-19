@@ -1,4 +1,4 @@
-enum PortType {
+export enum PortType {
     POWER,
     CAN,
     ETHERNET,
@@ -10,13 +10,13 @@ enum PortType {
     USBC
 }
 
-enum PortDirection {
+export enum PortDirection {
     INPUT,
     OUTPUT,
     BIDIRECTIONAL
 }
 
-interface Port {
+export interface Port {
     id: string;
     type: PortType;
     direction: PortDirection;
@@ -24,12 +24,12 @@ interface Port {
     maxConnections?: number;
 }
 
-interface Requirement {
+export interface Requirement {
     portType: PortType;
     minConnections: number;
 }
 
-interface Connection {
+export interface Connection {
     id: string;
     sourceDevice: string;
     sourcePort: string;
@@ -37,12 +37,12 @@ interface Connection {
     targetPort: string;
 }
 
-interface Vector {
+export interface Vector {
     x: number,
     y: number
 }
 
-class HardwareModel {
+export class HardwareModel {
     id?: string;
     type?: string;
     position?: Vector;
