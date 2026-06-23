@@ -1,0 +1,28 @@
+{
+  "name": "@691sim/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --pretty"
+  },
+  "dependencies": {
+    "@691sim/core": "workspace:*",
+    "@691sim/estimator": "workspace:*",
+    "@691sim/registry": "workspace:*",
+    "@691sim/serialization": "workspace:*",
+    "@691sim/verifier": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.6"
+  }
+}

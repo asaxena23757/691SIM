@@ -5,8 +5,9 @@
   "type": "module",
   "description": "FRC Architecture Verifier - monorepo root",
   "scripts": {
-    "build": "pnpm -r --filter=./packages/* run build",
+    "build": "pnpm -r --filter=./packages/* run build && pnpm --filter @691sim/web run build",
     "dev": "pnpm -r --filter=./packages/* run dev",
+    "dev:web": "pnpm --filter @691sim/web run dev",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

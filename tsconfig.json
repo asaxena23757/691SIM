@@ -6,7 +6,8 @@
     { "path": "packages/verifier" },
     { "path": "packages/estimator" },
     { "path": "packages/serialization" },
-    { "path": "apps/desktop" }
+    { "path": "apps/desktop" },
+    { "path": "apps/web" }
   ],
   "compilerOptions": {
     "types": ["node"]
