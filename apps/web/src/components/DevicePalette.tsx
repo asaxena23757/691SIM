@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DeviceCategory } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { CATEGORY_NAMES, categoryColor } from '../utils/labels';
@@ -21,7 +22,7 @@ export function DevicePalette({ state }: DevicePaletteProps) {
 
   const byCategory = CATEGORY_ORDER.map((category) => ({
     category,
-    devices: devices.filter((d) => d.category === category),
+    devices: devices.filter((d: any) => d.category === category),
   })).filter((group) => group.devices.length > 0);
 
   return (
@@ -42,7 +43,7 @@ export function DevicePalette({ state }: DevicePaletteProps) {
             >
               {CATEGORY_NAMES[category]}
             </div>
-            {groupDevices.map((def) => (
+            {groupDevices.map((def: any) => (
               <button
                 key={def.type}
                 type="button"

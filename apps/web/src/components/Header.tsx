@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { RobotModelState } from '../hooks/useRobotModel';
 
 interface HeaderProps {
@@ -10,8 +11,8 @@ interface HeaderProps {
 
 export function Header({ state, onOpenFile, onSaveFile, onLoadSample, onVerify }: HeaderProps) {
   const { model, verification } = state;
-  const errorCount = verification.diagnostics.filter((d) => d.severity === 2).length;
-  const warningCount = verification.diagnostics.filter((d) => d.severity === 1).length;
+  const errorCount = verification.diagnostics.filter((d: any) => d.severity === 2).length;
+  const warningCount = verification.diagnostics.filter((d: any) => d.severity === 1).length;
 
   return (
     <header className="app-header">

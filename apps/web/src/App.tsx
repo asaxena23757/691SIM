@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import './App.css';
 import { Header } from './components/Header';
 import { DevicePalette } from './components/DevicePalette';
@@ -16,11 +16,11 @@ type Tab = 'editor' | 'registry' | 'json' | 'graph';
 export default function App() {
   const state = useRobotModel(createHealthyModel());
   const [tab, setTab] = useState<Tab>('editor');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleOpenFile = () => fileInputRef.current?.click();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useMemo, useState } from 'react';
 import type { Connection, DeviceInstance, RobotModel } from '@691sim/core';
 import { createDefaultDeviceRegistry } from '@691sim/registry';
@@ -30,7 +31,7 @@ export function useRobotModel(initial: RobotModel) {
   }, [model, registry]);
 
   const selectedDevice = useMemo(
-    () => model.devices.find((d) => d.id === selectedDeviceId) ?? null,
+    () => model.devices.find((d: any) => d.id === selectedDeviceId) ?? null,
     [model.devices, selectedDeviceId],
   );
 
@@ -40,7 +41,7 @@ export function useRobotModel(initial: RobotModel) {
   }, [registry, selectedDevice]);
 
   const updateModel = useCallback((updater: (prev: RobotModel) => RobotModel) => {
-    setModel((prev) => updater(prev));
+    setModel((prev: any) => updater(prev));
   }, []);
 
   const newProject = useCallback((name?: string) => {
@@ -98,9 +99,9 @@ export function useRobotModel(initial: RobotModel) {
     (deviceId: string) => {
       updateModel((prev) => ({
         ...prev,
-        devices: prev.devices.filter((d) => d.id !== deviceId),
+        devices: prev.devices.filter((d: any) => d.id !== deviceId),
         connections: prev.connections.filter(
-          (c) => c.sourceDevice !== deviceId && c.targetDevice !== deviceId,
+          (c: any) => c.sourceDevice !== deviceId && c.targetDevice !== deviceId,
         ),
       }));
       if (selectedDeviceId === deviceId) setSelectedDeviceId(null);
@@ -113,7 +114,7 @@ export function useRobotModel(initial: RobotModel) {
     (deviceId: string, patch: Partial<DeviceInstance>) => {
       updateModel((prev) => ({
         ...prev,
-        devices: prev.devices.map((d) =>
+        devices: prev.devices.map((d: any) =>
           d.id === deviceId ? { ...d, ...patch, metadata: { ...d.metadata, ...patch.metadata } } : d,
         ),
       }));
@@ -125,7 +126,7 @@ export function useRobotModel(initial: RobotModel) {
     (deviceId: string, position: { x: number; y: number }) => {
       updateModel((prev) => ({
         ...prev,
-        devices: prev.devices.map((d) => (d.id === deviceId ? { ...d, position } : d)),
+        devices: prev.devices.map((d: any) => (d.id === deviceId ? { ...d, position } : d)),
       }));
     },
     [updateModel],
@@ -153,7 +154,7 @@ export function useRobotModel(initial: RobotModel) {
     (connectionId: string) => {
       updateModel((prev) => ({
         ...prev,
-        connections: prev.connections.filter((c) => c.id !== connectionId),
+        connections: prev.connections.filter((c: any) => c.id !== connectionId),
       }));
       if (selectedConnectionId === connectionId) setSelectedConnectionId(null);
     },

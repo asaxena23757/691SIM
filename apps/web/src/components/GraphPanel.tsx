@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { ESTIMATOR_PACKAGE_NAME } from '@691sim/estimator';
 
@@ -16,14 +17,14 @@ export function GraphPanel({ state }: GraphPanelProps) {
     );
   }
 
-  const powerSources = graph.powerSources().map((d) => d.id);
+  const powerSources = graph.powerSources().map((d: any) => d.id);
   const canReachable = model.devices
-    .filter((d) => graph.canReachable(d.id))
-    .map((d) => d.id);
+    .filter((d: any) => graph.canReachable(d.id))
+    .map((d: any) => d.id);
   const networkReachable = model.devices
-    .filter((d) => graph.networkReachable(d.id))
-    .map((d) => d.id);
-  const components = graph.connectedComponents().map((c) => c.map((d) => d.id));
+    .filter((d: any) => graph.networkReachable(d.id))
+    .map((d: any) => d.id);
+  const components = graph.connectedComponents().map((c: any) => c.map((d: any) => d.id));
 
   return (
     <div className="panel-content" style={{ fontSize: '0.82rem' }}>
@@ -53,7 +54,7 @@ export function GraphPanel({ state }: GraphPanelProps) {
 
       <div className="field">
         <label>Connected Components</label>
-        {components.map((comp, i) => (
+        {components.map((comp: any, i: any) => (
           <div key={i} style={{ marginBottom: '0.35rem', color: '#94a3b8' }}>
             Component {i + 1}: {comp.join(', ')}
           </div>

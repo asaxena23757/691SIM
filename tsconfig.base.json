@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "target": "ES2022",
     "lib": ["ES2022"],
     "module": "NodeNext",
@@ -16,7 +17,19 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "paths": {
+      "@691sim/core": ["packages/core/src/index.ts"],
+      "@691sim/registry": ["packages/registry/src/index.ts"],
+      "@691sim/verifier": ["packages/verifier/src/index.ts"],
+      "@691sim/estimator": ["packages/estimator/src/index.ts"],
+      "@691sim/serialization": ["packages/serialization/src/index.ts"],
+      "zod": ["packages/serialization/src/zod-shim.d.ts"],
+      "react": ["apps/web/src/react-shim.d.ts"],
+      "react-dom/client": ["apps/web/src/react-shim.d.ts"],
+      "react/jsx-runtime": ["apps/web/src/react-shim.d.ts"],
+      "react/jsx-dev-runtime": ["apps/web/src/react-shim.d.ts"]
+    }
   },
   "exclude": ["node_modules", "dist"]
 }

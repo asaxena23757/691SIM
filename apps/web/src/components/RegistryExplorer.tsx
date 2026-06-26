@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
-import type { DeviceDefinition } from '@691sim/core';
+import type { DeviceDefinition, Port, PortType } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { CATEGORY_NAMES, PORT_TYPE_NAMES, categoryColor } from '../utils/labels';
 
@@ -15,7 +16,7 @@ export function RegistryExplorer({ state }: RegistryExplorerProps) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', height: '100%' }}>
       <div style={{ borderRight: '1px solid #1f2937', overflow: 'auto', padding: '0.5rem' }}>
-        {devices.map((def) => (
+        {devices.map((def: DeviceDefinition) => (
           <button
             key={def.type}
             type="button"
@@ -67,7 +68,7 @@ export function RegistryExplorer({ state }: RegistryExplorerProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {selected.ports.map((port) => (
+                  {selected.ports.map((port: Port) => (
                     <tr key={port.id} style={{ borderTop: '1px solid #1f2937' }}>
                       <td style={{ padding: '0.3rem' }}>{port.id}</td>
                       <td style={{ padding: '0.3rem' }}>{PORT_TYPE_NAMES[port.type]}</td>
@@ -86,11 +87,13 @@ export function RegistryExplorer({ state }: RegistryExplorerProps) {
               <div className="field">
                 <label>Requirements</label>
                 <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.82rem' }}>
-                  {selected.requirements.map((req, i) => (
+                  {selected.requirements.map(
+                    (req: { minConnections: number; portType: PortType }, i: number) => (
                     <li key={i}>
                       Min {req.minConnections} {PORT_TYPE_NAMES[req.portType]} connection(s)
                     </li>
-                  ))}
+                    ),
+                  )}
                 </ul>
               </div>
             )}

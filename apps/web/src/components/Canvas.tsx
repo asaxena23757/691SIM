@@ -1,5 +1,7 @@
-import { useCallback, useRef } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useCallback, useRef, type PointerEvent } from 'react';
 import type { RobotModelState } from '../hooks/useRobotModel';
+import type { Connection, DeviceInstance, Port } from '@691sim/core';
 import { categoryColor, portTypeColor, PORT_TYPE_NAMES } from '../utils/labels';
 
 interface CanvasProps {
@@ -32,8 +34,8 @@ export function Canvas({ state }: CanvasProps) {
   } | null>(null);
 
   const onPointerDown = useCallback(
-    (deviceId: string, e: React.PointerEvent) => {
-      const device = model.devices.find((d) => d.id === deviceId);
+    (deviceId: string, e: PointerEvent) => {
+      const device = model.devices.find((d: DeviceInstance) => d.id === deviceId);
       if (!device) return;
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
       dragRef.current = {
@@ -50,7 +52,7 @@ export function Canvas({ state }: CanvasProps) {
   );
 
   const onPointerMove = useCallback(
-    (e: React.PointerEvent) => {
+    (e: PointerEvent) => {
       if (!dragRef.current) return;
       const dx = e.clientX - dragRef.current.startX;
       const dy = e.clientY - dragRef.current.startY;
@@ -67,7 +69,7 @@ export function Canvas({ state }: CanvasProps) {
   }, []);
 
   const deviceCenter = (deviceId: string) => {
-    const device = model.devices.find((d) => d.id === deviceId);
+    const device = model.devices.find((d: DeviceInstance) => d.id === deviceId);
     const x = (device?.position?.x ?? 0) + DEVICE_W / 2;
     const y = (device?.position?.y ?? 0) + DEVICE_H / 2;
     return { x, y };
@@ -86,7 +88,7 @@ export function Canvas({ state }: CanvasProps) {
       }}
     >
       <svg className="canvas-svg">
-        {model.connections.map((conn) => {
+        {model.connections.map((conn: Connection) => {
           const src = deviceCenter(conn.sourceDevice);
           const tgt = deviceCenter(conn.targetDevice);
           const isSelected = conn.id === selectedConnectionId;
@@ -101,7 +103,7 @@ export function Canvas({ state }: CanvasProps) {
                 x2={tgt.x}
                 y2={tgt.y}
                 className={`connection-line ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
-                onClick={(e) => {
+                onClick={(e: { stopPropagation(): void }) => {
                   e.stopPropagation();
                   setSelectedConnectionId(conn.id);
                   setSelectedDeviceId(null);
@@ -115,7 +117,7 @@ export function Canvas({ state }: CanvasProps) {
         })}
       </svg>
 
-      {model.devices.map((device) => {
+      {model.devices.map((device: DeviceInstance) => {
         const def = registry.get(device.type);
         const x = device.position?.x ?? 0;
         const y = device.position?.y ?? 0;
@@ -128,17 +130,17 @@ export function Canvas({ state }: CanvasProps) {
             key={device.id}
             className={`device-node ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
             style={{ left: x, top: y, borderColor: color }}
-            onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => onPointerDown(device.id, e)}
+            onClick={(e: { stopPropagation(): void }) => e.stopPropagation()}
+            onPointerDown={(e: PointerEvent) => onPointerDown(device.id, e)}
           >
             <div className="device-title" style={{ color }}>
               {device.label ?? def?.displayName ?? device.type}
             </div>
             <div className="device-type">{device.type}</div>
             <div className="device-ports">
-              {def?.ports.map((port) => {
+              {def?.ports.map((port: Port) => {
                 const isPending =
-                  pendingPort?.deviceId === device.id && pendingPort.portId === port.id;
+                  pendingPort?.deviceId === device.id && pendingPort?.portId === port.id;
                 return (
                   <button
                     key={port.id}
@@ -146,7 +148,7 @@ export function Canvas({ state }: CanvasProps) {
                     className={`port-btn ${isPending ? 'pending' : ''}`}
                     style={{ borderColor: portTypeColor(port.type) }}
                     title={`${port.id} (${PORT_TYPE_NAMES[port.type]})`}
-                    onClick={(e) => {
+                    onClick={(e: { stopPropagation(): void }) => {
                       e.stopPropagation();
                       handlePortClick(device.id, port.id);
                     }}

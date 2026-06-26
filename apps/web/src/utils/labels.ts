@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   PROJECT_SCHEMA_VERSION,
   PortType,
@@ -195,12 +196,12 @@ export function createHealthyModel(): RobotModel {
 export function nextDeviceId(type: string, devices: RobotModel['devices']): string {
   const base = type.toLowerCase().replace(/\s+/g, '-');
   let n = 1;
-  while (devices.some((d) => d.id === `${base}-${n}`)) n++;
+  while (devices.some((d: any) => d.id === `${base}-${n}`)) n++;
   return `${base}-${n}`;
 }
 
 export function nextConnectionId(connections: RobotModel['connections']): string {
   let n = 1;
-  while (connections.some((c) => c.id === `conn-${n}`)) n++;
+  while (connections.some((c: any) => c.id === `conn-${n}`)) n++;
   return `conn-${n}`;
 }

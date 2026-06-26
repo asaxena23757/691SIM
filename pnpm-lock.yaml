@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      tsc:
+        specifier: ^2.0.4
+        version: 2.0.4
     devDependencies:
       '@eslint/js':
         specifier: ^9.18.0
@@ -21,7 +25,7 @@ importers:
         specifier: ^3.4.2
         version: 3.8.4
       tsup:
-        specifier: ^8.3.5
+        specifier: ^8.5.1
         version: 8.5.1(postcss@8.5.15)(typescript@5.9.3)
       typescript:
         specifier: ^5.7.3
@@ -1623,6 +1627,11 @@ packages:
   ts-interface-checker@0.1.13:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
 
+  tsc@2.0.4:
+    resolution: {integrity: sha512-fzoSieZI5KKJVBYGvwbVZs/J5za84f2lSTLPYf6AGiIf43tZ3GNrI1QzTLcjtyDDP4aLxd46RTZq1nQxe7+k5Q==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+    hasBin: true
+
   tsup@8.5.1:
     resolution: {integrity: sha512-xtgkqwdhpKWr3tKPmCkvYmS9xnQK3m3XgxZHwSUjvfTjp7YfXe5tT3GgWi0F2N+ZSMsOeWeZFh7ZZFg5iPhing==}
     engines: {node: '>=18'}
@@ -3068,6 +3077,8 @@ snapshots:
       typescript: 5.9.3
 
   ts-interface-checker@0.1.13: {}
+
+  tsc@2.0.4: {}
 
   tsup@8.5.1(postcss@8.5.15)(typescript@5.9.3):
     dependencies:

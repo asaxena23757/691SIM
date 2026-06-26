@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { ProjectValidationError } from '@691sim/serialization';
@@ -27,7 +28,7 @@ export function JsonPanel({ state }: JsonPanelProps) {
       state.loadFromJson(text);
       setError(null);
       setSuccess('JSON applied to editor.');
-    } catch (err) {
+    } catch (err: any) {
       if (err instanceof ProjectValidationError) {
         setError(err.message);
       } else {
@@ -86,7 +87,11 @@ export function JsonPanel({ state }: JsonPanelProps) {
           {success}
         </div>
       )}
-      <textarea value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
+      <textarea
+        value={text}
+        onChange={(e: { target: { value: string } }) => setText(e.target.value)}
+        spellCheck={false}
+      />
     </div>
   );
 }

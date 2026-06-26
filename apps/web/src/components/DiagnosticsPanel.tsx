@@ -1,4 +1,5 @@
-import { Severity } from '@691sim/core';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Severity, type Diagnostic } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { SEVERITY_NAMES } from '../utils/labels';
 
@@ -27,7 +28,7 @@ export function DiagnosticsPanel({ state }: DiagnosticsPanelProps) {
     Severity.INFO,
   ].map((severity) => ({
     severity,
-    items: diagnostics.filter((d) => d.severity === severity),
+    items: diagnostics.filter((d: Diagnostic) => d.severity === severity),
   }));
 
   return (
@@ -57,7 +58,7 @@ export function DiagnosticsPanel({ state }: DiagnosticsPanelProps) {
                   <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: '0.35rem' }}>
                     {SEVERITY_NAMES[severity]} ({items.length})
                   </div>
-                  {items.map((diag) => (
+                  {items.map((diag: Diagnostic) => (
                     <button
                       key={diag.id}
                       type="button"

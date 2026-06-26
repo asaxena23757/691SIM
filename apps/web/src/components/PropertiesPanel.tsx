@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { DeviceDefinition, Port } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { PORT_TYPE_NAMES } from '../utils/labels';
 
@@ -68,7 +70,7 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
             <label>Project Name</label>
             <input
               value={model.name}
-              onChange={(e) =>
+              onChange={(e: { target: { value: string } }) =>
                 state.setModel((prev) => ({ ...prev, name: e.target.value }))
               }
             />
@@ -103,10 +105,12 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
       <div className="panel-content">
         <div className="field">
           <label>Label</label>
-          <input
-            value={selectedDevice.label ?? ''}
-            onChange={(e) => updateDevice(selectedDevice.id, { label: e.target.value })}
-          />
+            <input
+              value={selectedDevice.label ?? ''}
+              onChange={(e: { target: { value: string } }) =>
+                updateDevice(selectedDevice.id, { label: e.target.value })
+              }
+            />
         </div>
         <div className="field">
           <label>Device Type</label>
@@ -117,14 +121,14 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
           <input value={selectedDevice.id} readOnly />
         </div>
 
-        {selectedDefinition.ports.some((p) => p.type === 1) && (
+        {selectedDefinition.ports.some((p: Port) => p.type === 1) && (
           <div className="field">
             <label>CAN ID</label>
             <input
               type="number"
               value={canId !== undefined ? String(canId) : ''}
               placeholder="e.g. 2"
-              onChange={(e) => {
+              onChange={(e: { target: { value: string } }) => {
                 const val = e.target.value;
                 updateDevice(selectedDevice.id, {
                   metadata: {
@@ -137,13 +141,13 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
           </div>
         )}
 
-        {selectedDefinition.ports.some((p) => p.type === 2) && (
+        {selectedDefinition.ports.some((p: Port) => p.type === 2) && (
           <div className="field">
             <label>IP Address</label>
             <input
               value={typeof ipAddress === 'string' ? ipAddress : ''}
               placeholder="10.6.91.x"
-              onChange={(e) =>
+              onChange={(e: { target: { value: string } }) =>
                 updateDevice(selectedDevice.id, {
                   metadata: {
                     ...selectedDevice.metadata,
@@ -158,7 +162,7 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
         <div className="field">
           <label>Ports</label>
           <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-            {selectedDefinition.ports.map((port) => (
+            {selectedDefinition.ports.map((port: Port) => (
               <div key={port.id} style={{ marginBottom: '0.25rem' }}>
                 <strong>{port.id}</strong> — {PORT_TYPE_NAMES[port.type]}
                 {port.required ? ' (required)' : ''}
