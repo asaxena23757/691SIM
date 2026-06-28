@@ -70,7 +70,9 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
             <label>Project Name</label>
             <input
               value={model.name}
-              onChange={(e) => state.setModel((prev) => ({ ...prev, name: e.target.value }))}
+              onChange={(e: { target: { value: string } }) =>
+                state.setModel((prev) => ({ ...prev, name: e.target.value }))
+              }
             />
           </div>
           <div className="field">
@@ -105,7 +107,9 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
           <label>Label</label>
           <input
             value={selectedDevice.label ?? ''}
-            onChange={(e) => updateDevice(selectedDevice.id, { label: e.target.value })}
+            onChange={(e: { target: { value: string } }) =>
+              updateDevice(selectedDevice.id, { label: e.target.value })
+            }
           />
         </div>
         <div className="field">
@@ -124,7 +128,7 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
               type="number"
               value={canId !== undefined ? String(canId) : ''}
               placeholder="e.g. 2"
-              onChange={(e) => {
+              onChange={(e: { target: { value: string } }) => {
                 const val = e.target.value;
                 updateDevice(selectedDevice.id, {
                   metadata: {
@@ -143,7 +147,7 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
             <input
               value={typeof ipAddress === 'string' ? ipAddress : ''}
               placeholder="10.6.91.x"
-              onChange={(e) =>
+              onChange={(e: { target: { value: string } }) =>
                 updateDevice(selectedDevice.id, {
                   metadata: {
                     ...selectedDevice.metadata,

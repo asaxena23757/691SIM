@@ -55,7 +55,7 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
             key={conn.id}
             className={`connection-group ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
             opacity={opacity}
-            onClick={(e) => {
+            onClick={(e: { stopPropagation(): void }) => {
               e.stopPropagation();
               setSelectedConnectionId(conn.id);
               setSelectedDeviceId(null);
@@ -196,8 +196,8 @@ export function Canvas({ state }: CanvasProps) {
             key={device.id}
             className={`device-node ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
             style={{ left: x, top: y, borderColor: color, width: DEVICE_W }}
-            onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => onPointerDown(device.id, e)}
+            onClick={(e: { stopPropagation(): void }) => e.stopPropagation()}
+            onPointerDown={(e: PointerEvent) => onPointerDown(device.id, e)}
           >
             <div className="device-image-wrap">
               <DeviceIcon type={device.type} size={52} />
@@ -225,7 +225,7 @@ export function Canvas({ state }: CanvasProps) {
                             : undefined,
                     }}
                     title={`${port.id} (${PORT_TYPE_NAMES[port.type]})`}
-                    onClick={(e) => {
+                    onClick={(e: { stopPropagation(): void }) => {
                       e.stopPropagation();
                       handlePortClick(device.id, port.id);
                     }}
