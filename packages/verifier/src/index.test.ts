@@ -1,8 +1,4 @@
-import {
-  PROJECT_SCHEMA_VERSION,
-  Severity,
-  type RobotModel,
-} from "@691sim/core";
+import { createHealthyRobotModel, Severity, type RobotModel } from "@691sim/core";
 import { describe, expect, it } from "vitest";
 import {
   buildGraph,
@@ -12,89 +8,7 @@ import {
 } from "./index.js";
 
 function healthyModel(): RobotModel {
-  return {
-    schemaVersion: PROJECT_SCHEMA_VERSION,
-    id: "robot-1",
-    name: "Healthy Robot",
-    devices: [
-      { id: "battery-1", type: "Battery" },
-      { id: "pdh-1", type: "PDH", metadata: { canId: 1 } },
-      { id: "rio-1", type: "RoboRIO", metadata: { ipAddress: "10.6.91.2" } },
-      { id: "radio-1", type: "Radio", metadata: { ipAddress: "10.6.91.1" } },
-      { id: "spark-1", type: "SparkMax", metadata: { canId: 2 } },
-      { id: "coder-1", type: "CANcoder", metadata: { canId: 3 } },
-      {
-        id: "limelight-1",
-        type: "Limelight",
-        metadata: { ipAddress: "10.6.91.11" },
-      },
-    ],
-    connections: [
-      {
-        id: "battery-pdh",
-        sourceDevice: "battery-1",
-        sourcePort: "main_power",
-        targetDevice: "pdh-1",
-        targetPort: "main_power_in",
-      },
-      {
-        id: "pdh-rio-power",
-        sourceDevice: "pdh-1",
-        sourcePort: "channel_0",
-        targetDevice: "rio-1",
-        targetPort: "power_in",
-      },
-      {
-        id: "pdh-spark-power",
-        sourceDevice: "pdh-1",
-        sourcePort: "channel_1",
-        targetDevice: "spark-1",
-        targetPort: "power_in",
-      },
-      {
-        id: "pdh-limelight-power",
-        sourceDevice: "pdh-1",
-        sourcePort: "channel_2",
-        targetDevice: "limelight-1",
-        targetPort: "power_in",
-      },
-      {
-        id: "rio-pdh-can",
-        sourceDevice: "rio-1",
-        sourcePort: "can_bus",
-        targetDevice: "pdh-1",
-        targetPort: "can_bus",
-      },
-      {
-        id: "pdh-spark-can",
-        sourceDevice: "pdh-1",
-        sourcePort: "can_bus",
-        targetDevice: "spark-1",
-        targetPort: "can_bus",
-      },
-      {
-        id: "spark-coder-can",
-        sourceDevice: "spark-1",
-        sourcePort: "can_bus",
-        targetDevice: "coder-1",
-        targetPort: "can_bus",
-      },
-      {
-        id: "radio-rio-eth",
-        sourceDevice: "radio-1",
-        sourcePort: "rio_eth",
-        targetDevice: "rio-1",
-        targetPort: "eth_0",
-      },
-      {
-        id: "radio-limelight-eth",
-        sourceDevice: "radio-1",
-        sourcePort: "aux_eth",
-        targetDevice: "limelight-1",
-        targetPort: "eth_0",
-      },
-    ],
-  };
+  return createHealthyRobotModel();
 }
 
 describe("buildGraph", () => {
@@ -103,13 +17,14 @@ describe("buildGraph", () => {
 
     expect(graph.getDevice("rio-1")?.definition.type).toBe("RoboRIO");
     expect(graph.getPort("spark-1", "can_bus")?.deviceId).toBe("spark-1");
-    expect(graph.edges).toHaveLength(9);
+    expect(graph.edges).toHaveLength(19);
   });
 
   it("traverses and finds shortest paths by connection type", () => {
     const graph = buildGraph(healthyModel());
 
     expect(graph.powerReachable("spark-1")).toBe(true);
+    expect(graph.groundReachable("spark-1")).toBe(true);
     expect(graph.canReachable("coder-1")).toBe(true);
     expect(graph.networkReachable("limelight-1")).toBe(true);
 
@@ -148,7 +63,7 @@ describe("verifyRobotModel", () => {
       {
         id: "bad-type",
         sourceDevice: "pdh-1",
-        sourcePort: "channel_3",
+        sourcePort: "channel_4",
         targetDevice: "rio-1",
         targetPort: "eth_0",
       },
@@ -157,7 +72,7 @@ describe("verifyRobotModel", () => {
         sourceDevice: "spark-1",
         sourcePort: "power_in",
         targetDevice: "pdh-1",
-        targetPort: "channel_3",
+        targetPort: "channel_4",
       },
       {
         id: "too-many",
@@ -210,7 +125,11 @@ describe("verifyRobotModel", () => {
     model.connections = model.connections.filter(
       (connection) =>
         connection.sourceDevice !== "battery-1" &&
-        connection.sourceDevice !== "radio-1",
+        connection.targetDevice !== "battery-1" &&
+        connection.sourceDevice !== "radio-1" &&
+        connection.targetDevice !== "radio-1" &&
+        connection.sourceDevice !== "vrm-1" &&
+        connection.targetDevice !== "vrm-1",
     );
 
     const codes = verifyRobotModel(model).diagnostics.map(

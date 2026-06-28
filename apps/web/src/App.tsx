@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import './App.css';
+import { WireLegend } from './components/WireLegend';
 import { Header } from './components/Header';
 import { DevicePalette } from './components/DevicePalette';
 import { Canvas } from './components/Canvas';
@@ -101,6 +102,7 @@ export default function App() {
 
       {tab === 'editor' && (
         <>
+          <WireLegend />
           <div className="app-body">
             <DevicePalette state={state} />
             <Canvas state={state} />

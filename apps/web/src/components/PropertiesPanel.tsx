@@ -1,3 +1,4 @@
+import { PortType } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { PORT_TYPE_NAMES } from '../utils/labels';
 
@@ -117,7 +118,7 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
           <input value={selectedDevice.id} readOnly />
         </div>
 
-        {selectedDefinition.ports.some((p) => p.type === 1) && (
+        {selectedDefinition.ports.some((p) => p.type === PortType.CAN) && (
           <div className="field">
             <label>CAN ID</label>
             <input
@@ -137,7 +138,7 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
           </div>
         )}
 
-        {selectedDefinition.ports.some((p) => p.type === 2) && (
+        {selectedDefinition.ports.some((p) => p.type === PortType.ETHERNET) && (
           <div className="field">
             <label>IP Address</label>
             <input

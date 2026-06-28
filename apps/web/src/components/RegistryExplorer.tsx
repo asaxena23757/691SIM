@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { DeviceDefinition } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
-import { CATEGORY_NAMES, PORT_TYPE_NAMES, categoryColor } from '../utils/labels';
+import { CATEGORY_NAMES, PORT_TYPE_NAMES, categoryColor, portTypeColor } from '../utils/labels';
+import { DeviceIcon } from './DeviceIcon';
 
 interface RegistryExplorerProps {
   state: RobotModelState;
@@ -30,7 +31,8 @@ export function RegistryExplorer({ state }: RegistryExplorerProps) {
       <div style={{ padding: '0.75rem', overflow: 'auto' }}>
         {selected ? (
           <>
-            <h3 style={{ margin: '0 0 0.5rem', color: categoryColor(selected.category) }}>
+            <h3 style={{ margin: '0 0 0.5rem', color: categoryColor(selected.category), display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <DeviceIcon type={selected.type} size={40} />
               {selected.displayName}
             </h3>
             <p style={{ margin: '0 0 1rem', color: '#94a3b8', fontSize: '0.85rem' }}>
@@ -70,7 +72,9 @@ export function RegistryExplorer({ state }: RegistryExplorerProps) {
                   {selected.ports.map((port) => (
                     <tr key={port.id} style={{ borderTop: '1px solid #1f2937' }}>
                       <td style={{ padding: '0.3rem' }}>{port.id}</td>
-                      <td style={{ padding: '0.3rem' }}>{PORT_TYPE_NAMES[port.type]}</td>
+                      <td style={{ padding: '0.3rem', color: portTypeColor(port.type) }}>
+                        {PORT_TYPE_NAMES[port.type]}
+                      </td>
                       <td style={{ padding: '0.3rem' }}>
                         {port.direction === 0 ? 'IN' : port.direction === 1 ? 'OUT' : 'BI'}
                       </td>

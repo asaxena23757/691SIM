@@ -1,13 +1,112 @@
 import { useCallback, useRef } from 'react';
+import { PortType } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { categoryColor, portTypeColor, PORT_TYPE_NAMES } from '../utils/labels';
+import { wireVisualForPortType, resolveConnectionPortType } from '../utils/wireStyles';
+import { getVisiblePorts, countHiddenPorts } from '../utils/visiblePorts';
+import { DeviceIcon } from './DeviceIcon';
 
 interface CanvasProps {
   state: RobotModelState;
 }
 
-const DEVICE_W = 150;
-const DEVICE_H = 90;
+const DEVICE_W = 168;
+
+function ConnectionLines({
+  state,
+}: {
+  state: RobotModelState;
+}) {
+  const {
+    model,
+    registry,
+    selectedConnectionId,
+    setSelectedConnectionId,
+    setSelectedDeviceId,
+    highlightDeviceIds,
+  } = state;
+
+  const deviceCenter = (deviceId: string) => {
+    const device = model.devices.find((d) => d.id === deviceId);
+    const x = (device?.position?.x ?? 0) + DEVICE_W / 2;
+    const y = (device?.position?.y ?? 0) + 72;
+    return { x, y };
+  };
+
+  return (
+    <>
+      {model.connections.map((conn) => {
+        const srcDevice = model.devices.find((d) => d.id === conn.sourceDevice);
+        const portType =
+          resolveConnectionPortType(
+            registry,
+            conn.sourceDevice,
+            srcDevice?.type ?? '',
+            conn.sourcePort,
+          ) ?? PortType.POWER;
+        const visual = wireVisualForPortType(portType);
+        const src = deviceCenter(conn.sourceDevice);
+        const tgt = deviceCenter(conn.targetDevice);
+        const isSelected = conn.id === selectedConnectionId;
+        const isHighlighted =
+          highlightDeviceIds.includes(conn.sourceDevice) ||
+          highlightDeviceIds.includes(conn.targetDevice);
+        const opacity = isSelected || isHighlighted ? 1 : 0.85;
+        const offset = visual.kind === 'pair' ? 4 : 0;
+
+        return (
+          <g
+            key={conn.id}
+            className={`connection-group ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
+            opacity={opacity}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedConnectionId(conn.id);
+              setSelectedDeviceId(null);
+            }}
+          >
+            {visual.kind === 'pair' ? (
+              <>
+                <line
+                  x1={src.x}
+                  y1={src.y - offset}
+                  x2={tgt.x}
+                  y2={tgt.y - offset}
+                  stroke={visual.colors[0]}
+                  strokeWidth={visual.width}
+                  strokeLinecap="round"
+                />
+                <line
+                  x1={src.x}
+                  y1={src.y + offset}
+                  x2={tgt.x}
+                  y2={tgt.y + offset}
+                  stroke={visual.colors[1]}
+                  strokeWidth={visual.width}
+                  strokeLinecap="round"
+                />
+              </>
+            ) : (
+              <line
+                x1={src.x}
+                y1={src.y}
+                x2={tgt.x}
+                y2={tgt.y}
+                stroke={visual.colors[0]}
+                strokeWidth={visual.width}
+                strokeLinecap="round"
+              />
+            )}
+            <title>
+              {visual.label}: {conn.sourceDevice}.{conn.sourcePort} → {conn.targetDevice}.
+              {conn.targetPort}
+            </title>
+          </g>
+        );
+      })}
+    </>
+  );
+}
 
 export function Canvas({ state }: CanvasProps) {
   const {
@@ -35,7 +134,7 @@ export function Canvas({ state }: CanvasProps) {
     (deviceId: string, e: React.PointerEvent) => {
       const device = model.devices.find((d) => d.id === deviceId);
       if (!device) return;
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       dragRef.current = {
         deviceId,
         startX: e.clientX,
@@ -66,13 +165,6 @@ export function Canvas({ state }: CanvasProps) {
     dragRef.current = null;
   }, []);
 
-  const deviceCenter = (deviceId: string) => {
-    const device = model.devices.find((d) => d.id === deviceId);
-    const x = (device?.position?.x ?? 0) + DEVICE_W / 2;
-    const y = (device?.position?.y ?? 0) + DEVICE_H / 2;
-    return { x, y };
-  };
-
   return (
     <main
       className="canvas"
@@ -86,33 +178,7 @@ export function Canvas({ state }: CanvasProps) {
       }}
     >
       <svg className="canvas-svg">
-        {model.connections.map((conn) => {
-          const src = deviceCenter(conn.sourceDevice);
-          const tgt = deviceCenter(conn.targetDevice);
-          const isSelected = conn.id === selectedConnectionId;
-          const isHighlighted =
-            highlightDeviceIds.includes(conn.sourceDevice) ||
-            highlightDeviceIds.includes(conn.targetDevice);
-          return (
-            <g key={conn.id}>
-              <line
-                x1={src.x}
-                y1={src.y}
-                x2={tgt.x}
-                y2={tgt.y}
-                className={`connection-line ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedConnectionId(conn.id);
-                  setSelectedDeviceId(null);
-                }}
-              />
-              <title>
-                {conn.sourceDevice}.{conn.sourcePort} → {conn.targetDevice}.{conn.targetPort}
-              </title>
-            </g>
-          );
-        })}
+        <ConnectionLines state={state} />
       </svg>
 
       {model.devices.map((device) => {
@@ -122,21 +188,30 @@ export function Canvas({ state }: CanvasProps) {
         const isSelected = device.id === selectedDeviceId;
         const isHighlighted = highlightDeviceIds.includes(device.id);
         const color = def ? categoryColor(def.category) : '#64748b';
+        const visiblePorts = def
+          ? getVisiblePorts(device.id, def, model.connections)
+          : [];
+        const hiddenCount = def
+          ? countHiddenPorts(device.id, def, model.connections)
+          : 0;
 
         return (
           <div
             key={device.id}
             className={`device-node ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
-            style={{ left: x, top: y, borderColor: color }}
+            style={{ left: x, top: y, borderColor: color, width: DEVICE_W }}
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => onPointerDown(device.id, e)}
           >
+            <div className="device-image-wrap">
+              <DeviceIcon type={device.type} size={52} />
+            </div>
             <div className="device-title" style={{ color }}>
               {device.label ?? def?.displayName ?? device.type}
             </div>
             <div className="device-type">{device.type}</div>
             <div className="device-ports">
-              {def?.ports.map((port) => {
+              {visiblePorts.map((port) => {
                 const isPending =
                   pendingPort?.deviceId === device.id && pendingPort.portId === port.id;
                 return (
@@ -144,7 +219,15 @@ export function Canvas({ state }: CanvasProps) {
                     key={port.id}
                     type="button"
                     className={`port-btn ${isPending ? 'pending' : ''}`}
-                    style={{ borderColor: portTypeColor(port.type) }}
+                    style={{
+                      borderColor: portTypeColor(port.type),
+                      color:
+                        port.type === PortType.POWER
+                          ? '#fecaca'
+                          : port.type === PortType.GROUND
+                            ? '#cbd5e1'
+                            : undefined,
+                    }}
                     title={`${port.id} (${PORT_TYPE_NAMES[port.type]})`}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -155,15 +238,16 @@ export function Canvas({ state }: CanvasProps) {
                   </button>
                 );
               })}
+              {hiddenCount > 0 && (
+                <span className="port-more">+{hiddenCount} ports in properties</span>
+              )}
             </div>
           </div>
         );
       })}
 
       {selectedConnectionId && (
-        <div className="canvas-hint">
-          Connection selected — delete in properties panel
-        </div>
+        <div className="canvas-hint">Connection selected — delete in properties panel</div>
       )}
       {pendingPort && (
         <div className="canvas-hint">

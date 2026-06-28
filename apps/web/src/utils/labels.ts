@@ -3,11 +3,13 @@ import {
   PortType,
   Severity,
   DeviceCategory,
+  createHealthyRobotModel,
   type RobotModel,
 } from '@691sim/core';
 
 export const PORT_TYPE_NAMES: Record<PortType, string> = {
   [PortType.POWER]: 'POWER',
+  [PortType.GROUND]: 'GROUND',
   [PortType.CAN]: 'CAN',
   [PortType.ETHERNET]: 'ETHERNET',
   [PortType.PWM]: 'PWM',
@@ -36,13 +38,15 @@ export const SEVERITY_NAMES: Record<Severity, string> = {
 export function portTypeColor(type: PortType): string {
   switch (type) {
     case PortType.POWER:
-      return '#f59e0b';
+      return '#ef4444';
+    case PortType.GROUND:
+      return '#111827';
     case PortType.CAN:
       return '#22c55e';
     case PortType.ETHERNET:
-      return '#3b82f6';
+      return '#2563eb';
     case PortType.PWM:
-      return '#a855f7';
+      return '#f8fafc';
     case PortType.DIO:
       return '#ec4899';
     default:
@@ -79,118 +83,7 @@ export function createEmptyModel(name = 'New Robot'): RobotModel {
   };
 }
 
-export function createHealthyModel(): RobotModel {
-  return {
-    schemaVersion: PROJECT_SCHEMA_VERSION,
-    id: 'robot-1',
-    name: 'Healthy Robot',
-    devices: [
-      { id: 'battery-1', type: 'Battery', position: { x: 40, y: 200 } },
-      {
-        id: 'pdh-1',
-        type: 'PDH',
-        metadata: { canId: 1 },
-        position: { x: 220, y: 200 },
-      },
-      {
-        id: 'rio-1',
-        type: 'RoboRIO',
-        metadata: { ipAddress: '10.6.91.2' },
-        position: { x: 420, y: 80 },
-      },
-      {
-        id: 'radio-1',
-        type: 'Radio',
-        metadata: { ipAddress: '10.6.91.1' },
-        position: { x: 420, y: 320 },
-      },
-      {
-        id: 'spark-1',
-        type: 'SparkMax',
-        label: 'Drive Left',
-        metadata: { canId: 2 },
-        position: { x: 620, y: 80 },
-      },
-      {
-        id: 'coder-1',
-        type: 'CANcoder',
-        metadata: { canId: 3 },
-        position: { x: 820, y: 80 },
-      },
-      {
-        id: 'limelight-1',
-        type: 'Limelight',
-        metadata: { ipAddress: '10.6.91.11' },
-        position: { x: 620, y: 320 },
-      },
-    ],
-    connections: [
-      {
-        id: 'battery-pdh',
-        sourceDevice: 'battery-1',
-        sourcePort: 'main_power',
-        targetDevice: 'pdh-1',
-        targetPort: 'main_power_in',
-      },
-      {
-        id: 'pdh-rio-power',
-        sourceDevice: 'pdh-1',
-        sourcePort: 'channel_0',
-        targetDevice: 'rio-1',
-        targetPort: 'power_in',
-      },
-      {
-        id: 'pdh-spark-power',
-        sourceDevice: 'pdh-1',
-        sourcePort: 'channel_1',
-        targetDevice: 'spark-1',
-        targetPort: 'power_in',
-      },
-      {
-        id: 'pdh-limelight-power',
-        sourceDevice: 'pdh-1',
-        sourcePort: 'channel_2',
-        targetDevice: 'limelight-1',
-        targetPort: 'power_in',
-      },
-      {
-        id: 'rio-pdh-can',
-        sourceDevice: 'rio-1',
-        sourcePort: 'can_bus',
-        targetDevice: 'pdh-1',
-        targetPort: 'can_bus',
-      },
-      {
-        id: 'pdh-spark-can',
-        sourceDevice: 'pdh-1',
-        sourcePort: 'can_bus',
-        targetDevice: 'spark-1',
-        targetPort: 'can_bus',
-      },
-      {
-        id: 'spark-coder-can',
-        sourceDevice: 'spark-1',
-        sourcePort: 'can_bus',
-        targetDevice: 'coder-1',
-        targetPort: 'can_bus',
-      },
-      {
-        id: 'radio-rio-eth',
-        sourceDevice: 'radio-1',
-        sourcePort: 'rio_eth',
-        targetDevice: 'rio-1',
-        targetPort: 'eth_0',
-      },
-      {
-        id: 'radio-limelight-eth',
-        sourceDevice: 'radio-1',
-        sourcePort: 'aux_eth',
-        targetDevice: 'limelight-1',
-        targetPort: 'eth_0',
-      },
-    ],
-  };
-}
+export { createHealthyRobotModel as createHealthyModel };
 
 export function nextDeviceId(type: string, devices: RobotModel['devices']): string {
   const base = type.toLowerCase().replace(/\s+/g, '-');

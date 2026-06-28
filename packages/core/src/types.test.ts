@@ -15,6 +15,7 @@ import { MotorControllerModule } from './hardwareModules.js';
 describe('shared enums', () => {
   it('PortType has the expected members', () => {
     expect(Object.values(PortType)).toContain('POWER');
+    expect(Object.values(PortType)).toContain('GROUND');
     expect(Object.values(PortType)).toContain('CAN');
   });
 

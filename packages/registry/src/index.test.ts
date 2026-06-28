@@ -70,6 +70,14 @@ describe("builtInDeviceDefinitions", () => {
       maxConnections: 1,
     });
 
+    expect(registry.require("Battery").ports).toContainEqual({
+      id: "ground",
+      type: PortType.GROUND,
+      direction: PortDirection.OUTPUT,
+      required: false,
+      maxConnections: 4,
+    });
+
     expect(
       registry
         .require("RoboRIO")
@@ -77,6 +85,7 @@ describe("builtInDeviceDefinitions", () => {
     ).toBe(true);
     expect(registry.require("Limelight").requirements).toEqual([
       { portType: PortType.POWER, minConnections: 1 },
+      { portType: PortType.GROUND, minConnections: 1 },
       { portType: PortType.ETHERNET, minConnections: 1 },
     ]);
   });

@@ -1,27 +1,35 @@
-# Hardware Model Specification: SparkMax Motor Controller
+# Hardware Model Specification: Spark MAX Motor Controller
 
 > **ID:** `SparkMax`  
-> **Type:** `MOTOR`  
-> **Layout Position:** `X: 0, Y: 0` (Used for visual canvas rendering)
+> **Type:** `MOTOR_CONTROLLER`  
+> **Manufacturer:** REV Robotics (REV-11-2158)
+
+---
+
+## Description
+
+Brushless motor controller with integrated encoder support, CAN control, and USB-C configuration.
 
 ---
 
 ## Available Ports
 
-| Port ID | Type | Direction | Required? | Max Connections | VOLTAGE/AMPS |
+| Port ID | Type | Direction | Required? | Max Connections | Notes |
 | :--- | :--- | :--- | :---: | :---: | :--- |
-| `main_pwr` | `POWER` | `INPUT` | Yes | `1` | 12/100 |
-| `motor_pwr` | `POWER` | `OUTPUT` | NO | `1` | 12/60 |
-| `motor_out` | `PWM` | `BIDIRECTIONAL` | Yes | `1` | 0/0 |
-| `can_bus_0`| `CAN` | `BIDIRECTIONAL`| YES | `1` | 0/0 |
-| `usb_c` | `CAN`| `BIDIRECTIONAL`| No | `1` | 0/0 |
+| `power_in` | `POWER` | `INPUT` | Yes | 1 | 12V input (red wire) |
+| `ground` | `GROUND` | `INPUT` | Yes | 1 | Ground return (black wire) |
+| `motor_a` | `POWER` | `OUTPUT` | No | 1 | Brushless phase A |
+| `motor_b` | `POWER` | `OUTPUT` | No | 1 | Brushless phase B |
+| `motor_c` | `POWER` | `OUTPUT` | No | 1 | Brushless phase C |
+| `can_bus` | `CAN` | `BIDIRECTIONAL` | No | 2 | Yellow/green twisted CAN pair |
+| `usb_c` | `USBC` | `BIDIRECTIONAL` | No | 1 | REV Hardware Client configuration |
 
 ---
 
 ## Hardware Requirements
 
-* **Requirement 1:** Must connect to at least `1` `POWER` source.
-* **Requirement 2:** Requires a minimum of `1` `CAN` connection for data routing.
+* Must connect to at least one `POWER` source and one `GROUND` return.
+* Requires a `CAN` connection for robot control.
 
 ---
 
@@ -29,8 +37,9 @@
 
 ```json
 {
-  "manufacturer": "REV_ROBOTICS",
+  "manufacturer": "REV Robotics",
+  "partNumber": "REV-11-2158",
   "operatingVoltage": "12V",
-  "price": "$100",
-  "firmwareVersion": "v2.1.0"
+  "motorType": "brushless-3-phase"
 }
+```

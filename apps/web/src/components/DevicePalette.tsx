@@ -1,6 +1,7 @@
 import { DeviceCategory } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { CATEGORY_NAMES, categoryColor } from '../utils/labels';
+import { DeviceIcon } from './DeviceIcon';
 
 const CATEGORY_ORDER = [
   DeviceCategory.POWER,
@@ -46,12 +47,15 @@ export function DevicePalette({ state }: DevicePaletteProps) {
               <button
                 key={def.type}
                 type="button"
-                className="list-item"
+                className="list-item palette-item"
                 onClick={() => addDevice(def.type)}
                 title={`Add ${def.displayName}`}
               >
-                {def.displayName}
-                <small>{def.type}</small>
+                <DeviceIcon type={def.type} size={36} />
+                <span>
+                  {def.displayName}
+                  <small>{def.type}</small>
+                </span>
               </button>
             ))}
           </div>
