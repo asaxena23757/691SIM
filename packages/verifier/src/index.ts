@@ -58,11 +58,15 @@ function deviceHasPortType(node: DeviceNode, type: PortType): boolean {
 
 function isPowerSource(node: DeviceNode): boolean {
   return (
-    node.definition.category === DeviceCategory.POWER &&
-    node.definition.ports.some(
-      (port) =>
-        port.type === PortType.POWER && port.direction === PortDirection.OUTPUT,
-    )
+    node.definition.type === "Battery" ||
+    node.definition.metadata?.role === "primary-power-source"
+  );
+}
+
+function isGroundSource(node: DeviceNode): boolean {
+  return node.definition.ports.some(
+    (port) =>
+      port.type === PortType.GROUND && port.direction === PortDirection.OUTPUT,
   );
 }
 
@@ -258,11 +262,28 @@ export class RobotGraph {
     return this.devices.filter(isPowerSource);
   }
 
+  groundSources(): DeviceNode[] {
+    return this.devices.filter(isGroundSource);
+  }
+
   powerReachable(deviceId: string): boolean {
     return this.isReachableFromAny(
       this.powerSources().map((device) => device.id),
       deviceId,
       PortType.POWER,
+    );
+  }
+
+  groundReachable(deviceId: string): boolean {
+    const device = this.getDevice(deviceId);
+    if (!device || !deviceHasPortType(device, PortType.GROUND)) {
+      return true;
+    }
+
+    return this.isReachableFromAny(
+      this.groundSources().map((source) => source.id),
+      deviceId,
+      PortType.GROUND,
     );
   }
 
@@ -618,6 +639,21 @@ export const powerVerificationPass: VerificationPass = {
             "POWER_NOT_REACHABLE",
             Severity.ERROR,
             `${device.id} is not reachable from a battery over power connections.`,
+            { deviceIds: [device.id] },
+          ),
+        );
+      }
+
+      if (
+        needsPowerPath &&
+        deviceHasPortType(device, PortType.GROUND) &&
+        !graph.groundReachable(device.id)
+      ) {
+        diagnostics.push(
+          diagnostic(
+            "GROUND_NOT_REACHABLE",
+            Severity.ERROR,
+            `${device.id} is not reachable from a battery over ground connections.`,
             { deviceIds: [device.id] },
           ),
         );

@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import type { DeviceDefinition, Port } from '@691sim/core';
+import { PortType, type Port } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
-import { PORT_TYPE_NAMES } from '../utils/labels';
+import { PORT_TYPE_NAMES, portTypeColor } from '../utils/labels';
 
 interface PropertiesPanelProps {
   state: RobotModelState;
@@ -19,6 +18,7 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
     removeConnection,
     pendingPort,
     setPendingPort,
+    handlePortClick,
   } = state;
 
   const selectedConnection = model.connections.find((c) => c.id === selectedConnectionId);
@@ -70,9 +70,7 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
             <label>Project Name</label>
             <input
               value={model.name}
-              onChange={(e: { target: { value: string } }) =>
-                state.setModel((prev) => ({ ...prev, name: e.target.value }))
-              }
+              onChange={(e) => state.setModel((prev) => ({ ...prev, name: e.target.value }))}
             />
           </div>
           <div className="field">
@@ -105,12 +103,10 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
       <div className="panel-content">
         <div className="field">
           <label>Label</label>
-            <input
-              value={selectedDevice.label ?? ''}
-              onChange={(e: { target: { value: string } }) =>
-                updateDevice(selectedDevice.id, { label: e.target.value })
-              }
-            />
+          <input
+            value={selectedDevice.label ?? ''}
+            onChange={(e) => updateDevice(selectedDevice.id, { label: e.target.value })}
+          />
         </div>
         <div className="field">
           <label>Device Type</label>
@@ -121,14 +117,14 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
           <input value={selectedDevice.id} readOnly />
         </div>
 
-        {selectedDefinition.ports.some((p: Port) => p.type === 1) && (
+        {selectedDefinition.ports.some((p: Port) => p.type === PortType.CAN) && (
           <div className="field">
             <label>CAN ID</label>
             <input
               type="number"
               value={canId !== undefined ? String(canId) : ''}
               placeholder="e.g. 2"
-              onChange={(e: { target: { value: string } }) => {
+              onChange={(e) => {
                 const val = e.target.value;
                 updateDevice(selectedDevice.id, {
                   metadata: {
@@ -141,13 +137,13 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
           </div>
         )}
 
-        {selectedDefinition.ports.some((p: Port) => p.type === 2) && (
+        {selectedDefinition.ports.some((p: Port) => p.type === PortType.ETHERNET) && (
           <div className="field">
             <label>IP Address</label>
             <input
               value={typeof ipAddress === 'string' ? ipAddress : ''}
               placeholder="10.6.91.x"
-              onChange={(e: { target: { value: string } }) =>
+              onChange={(e) =>
                 updateDevice(selectedDevice.id, {
                   metadata: {
                     ...selectedDevice.metadata,
@@ -160,14 +156,24 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
         )}
 
         <div className="field">
-          <label>Ports</label>
-          <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-            {selectedDefinition.ports.map((port: Port) => (
-              <div key={port.id} style={{ marginBottom: '0.25rem' }}>
-                <strong>{port.id}</strong> — {PORT_TYPE_NAMES[port.type]}
-                {port.required ? ' (required)' : ''}
-              </div>
-            ))}
+          <label>All Ports ({selectedDefinition.ports.length})</label>
+          <div className="port-picker">
+            {selectedDefinition.ports.map((port: Port) => {
+              const isPending =
+                pendingPort?.deviceId === selectedDeviceId && pendingPort.portId === port.id;
+              return (
+                <button
+                  key={port.id}
+                  type="button"
+                  className={`port-btn ${isPending ? 'pending' : ''}`}
+                  style={{ borderColor: portTypeColor(port.type) }}
+                  title={`${PORT_TYPE_NAMES[port.type]}${port.required ? ' (required)' : ''}`}
+                  onClick={() => handlePortClick(selectedDevice.id, port.id)}
+                >
+                  {port.id}
+                </button>
+              );
+            })}
           </div>
         </div>
 

@@ -30,6 +30,18 @@ function powerOutput(id: string, maxConnections = 1): Port {
   return port(id, PortType.POWER, PortDirection.OUTPUT, false, maxConnections);
 }
 
+function powerInput(id = "power_in", required = true): Port {
+  return port(id, PortType.POWER, PortDirection.INPUT, required, 1);
+}
+
+function groundInput(id = "ground", required = true): Port {
+  return port(id, PortType.GROUND, PortDirection.INPUT, required, 1);
+}
+
+function groundOutput(id: string, maxConnections = 8): Port {
+  return port(id, PortType.GROUND, PortDirection.OUTPUT, false, maxConnections);
+}
+
 function canPort(id = "can_bus", maxConnections = 2, required = false): Port {
   return port(
     id,
@@ -41,7 +53,7 @@ function canPort(id = "can_bus", maxConnections = 2, required = false): Port {
 }
 
 function ethernetPort(
-  id = "eth_0",
+  id: string,
   required = false,
   maxConnections = 1,
 ): Port {
@@ -54,13 +66,55 @@ function ethernetPort(
   );
 }
 
+function pdhChannelPorts(): Port[] {
+  return Array.from({ length: 24 }, (_, index) =>
+    powerOutput(`channel_${index}`, 1),
+  );
+}
+
+function pdpChannelPorts(): Port[] {
+  return Array.from({ length: 16 }, (_, index) =>
+    powerOutput(`channel_${index}`, 1),
+  );
+}
+
+function vrmRegulatedOutputs(): Port[] {
+  const outputs: Port[] = [];
+  for (let index = 0; index < 2; index++) {
+    outputs.push(powerOutput(`12v_2a_${index}`, 1));
+    outputs.push(groundOutput(`ground_12v_2a_${index}`, 1));
+    outputs.push(powerOutput(`12v_500ma_${index}`, 1));
+    outputs.push(groundOutput(`ground_12v_500ma_${index}`, 1));
+    outputs.push(powerOutput(`5v_2a_${index}`, 1));
+    outputs.push(groundOutput(`ground_5v_2a_${index}`, 1));
+    outputs.push(powerOutput(`5v_500ma_${index}`, 1));
+    outputs.push(groundOutput(`ground_5v_500ma_${index}`, 1));
+  }
+  return outputs;
+}
+
+function poweredDeviceRequirements(): DeviceDefinition["requirements"] {
+  return [
+    { portType: PortType.POWER, minConnections: 1 },
+    { portType: PortType.GROUND, minConnections: 1 },
+  ];
+}
+
 export const builtInDeviceDefinitions: DeviceDefinition[] = [
   {
     type: "Battery",
-    displayName: "Battery",
+    displayName: "12V Battery",
     category: DeviceCategory.POWER,
-    ports: [powerOutput("main_power", 1)],
-    metadata: { nominalVoltage: 12, role: "primary-power-source" },
+    ports: [
+      powerOutput("main_power", 1),
+      groundOutput("ground", 4),
+    ],
+    metadata: {
+      nominalVoltage: 12,
+      role: "primary-power-source",
+      wireColorPositive: "red",
+      wireColorNegative: "black",
+    },
   },
   {
     type: "PDP",
@@ -68,15 +122,18 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
     category: DeviceCategory.POWER,
     ports: [
       port("main_power_in", PortType.POWER, PortDirection.INPUT, true, 1),
-      powerOutput("channel_0"),
-      powerOutput("channel_1"),
-      powerOutput("channel_2"),
-      powerOutput("channel_3"),
-      powerOutput("vrm_power"),
+      groundInput("ground_in", true),
+      ...pdpChannelPorts(),
+      groundOutput("ground_bus", 24),
       canPort("can_bus"),
     ],
-    requirements: [{ portType: PortType.POWER, minConnections: 1 }],
-    metadata: { manufacturer: "CTR Electronics", shortName: "PDP" },
+    requirements: poweredDeviceRequirements(),
+    metadata: {
+      manufacturer: "CTR Electronics",
+      shortName: "PDP",
+      channelCount: 16,
+      defaultCanId: 0,
+    },
   },
   {
     type: "PDH",
@@ -84,36 +141,42 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
     category: DeviceCategory.POWER,
     ports: [
       port("main_power_in", PortType.POWER, PortDirection.INPUT, true, 1),
-      powerOutput("channel_0"),
-      powerOutput("channel_1"),
-      powerOutput("channel_2"),
-      powerOutput("channel_3"),
-      powerOutput("vrm_power"),
-      canPort("can_bus"),
+      groundInput("ground_in", true),
+      ...pdhChannelPorts(),
+      powerOutput("vrm_out", 1),
+      groundOutput("ground_bus", 32),
+      canPort("can_bus", 2),
+      port("usb_c", PortType.USBC, PortDirection.BIDIRECTIONAL, false, 1),
     ],
-    requirements: [{ portType: PortType.POWER, minConnections: 1 }],
-    metadata: { manufacturer: "REV Robotics", shortName: "PDH" },
+    requirements: poweredDeviceRequirements(),
+    metadata: {
+      manufacturer: "REV Robotics",
+      shortName: "PDH",
+      partNumber: "REV-11-1850",
+      highCurrentChannels: "0-19",
+      lowCurrentChannels: "20-22",
+      switchedChannel: "23",
+      defaultCanId: 1,
+    },
   },
   {
     type: "VRM",
     displayName: "Voltage Regulator Module",
     category: DeviceCategory.POWER,
-    ports: [
-      port("power_in", PortType.POWER, PortDirection.INPUT, true, 1),
-      powerOutput("12v_2a", 2),
-      powerOutput("12v_500ma", 2),
-      powerOutput("5v_2a", 2),
-      powerOutput("5v_500ma", 2),
-    ],
-    requirements: [{ portType: PortType.POWER, minConnections: 1 }],
-    metadata: { manufacturer: "CTR Electronics" },
+    ports: [powerInput(), groundInput(), ...vrmRegulatedOutputs()],
+    requirements: poweredDeviceRequirements(),
+    metadata: {
+      manufacturer: "CTR Electronics",
+      note: "Radio is typically powered from a 12V/2A output",
+    },
   },
   {
     type: "RoboRIO",
     displayName: "RoboRIO",
     category: DeviceCategory.CONTROLLER,
     ports: [
-      port("power_in", PortType.POWER, PortDirection.INPUT, true, 1),
+      powerInput(),
+      groundInput(),
       canPort("can_bus", 16, true),
       ethernetPort("eth_0", true),
       port("usb_b", PortType.USBA, PortDirection.BIDIRECTIONAL, false, 1),
@@ -122,19 +185,24 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
       port("i2c", PortType.I2C, PortDirection.BIDIRECTIONAL, false, 4),
       port("spi", PortType.SPI, PortDirection.BIDIRECTIONAL, false, 4),
     ],
-    requirements: [{ portType: PortType.POWER, minConnections: 1 }],
-    metadata: { manufacturer: "NI", role: "main-controller" },
+    requirements: poweredDeviceRequirements(),
+    metadata: {
+      manufacturer: "NI",
+      role: "main-controller",
+      defaultIpAddress: "10.6.91.2",
+    },
   },
   {
     type: "SystemCore",
     displayName: "SystemCore",
     category: DeviceCategory.CONTROLLER,
     ports: [
-      port("power_in", PortType.POWER, PortDirection.INPUT, true, 1),
+      powerInput(),
+      groundInput(),
       canPort("can_bus", 16, true),
       ethernetPort("eth_0"),
     ],
-    requirements: [{ portType: PortType.POWER, minConnections: 1 }],
+    requirements: poweredDeviceRequirements(),
     metadata: { manufacturer: "REV Robotics" },
   },
   {
@@ -142,65 +210,81 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
     displayName: "Spark MAX",
     category: DeviceCategory.MOTOR_CONTROLLER,
     ports: [
-      port("power_in", PortType.POWER, PortDirection.INPUT, true, 1),
-      powerOutput("motor_out", 1),
+      powerInput(),
+      groundInput(),
+      powerOutput("motor_a", 1),
+      powerOutput("motor_b", 1),
+      powerOutput("motor_c", 1),
       canPort("can_bus", 2),
       port("usb_c", PortType.USBC, PortDirection.BIDIRECTIONAL, false, 1),
     ],
-    requirements: [{ portType: PortType.POWER, minConnections: 1 }],
-    metadata: { manufacturer: "REV Robotics" },
+    requirements: poweredDeviceRequirements(),
+    metadata: {
+      manufacturer: "REV Robotics",
+      partNumber: "REV-11-2158",
+      motorType: "brushless-3-phase",
+    },
   },
   {
     type: "SparkFlex",
     displayName: "Spark Flex",
     category: DeviceCategory.MOTOR_CONTROLLER,
     ports: [
-      port("power_in", PortType.POWER, PortDirection.INPUT, true, 1),
-      powerOutput("motor_out", 1),
+      powerInput(),
+      groundInput(),
+      powerOutput("motor_a", 1),
+      powerOutput("motor_b", 1),
+      powerOutput("motor_c", 1),
       canPort("can_bus", 2),
       port("usb_c", PortType.USBC, PortDirection.BIDIRECTIONAL, false, 1),
     ],
-    requirements: [{ portType: PortType.POWER, minConnections: 1 }],
-    metadata: { manufacturer: "REV Robotics" },
+    requirements: poweredDeviceRequirements(),
+    metadata: { manufacturer: "REV Robotics", motorType: "brushless-3-phase" },
   },
   {
     type: "TalonFX",
     displayName: "Talon FX",
     category: DeviceCategory.MOTOR_CONTROLLER,
     ports: [
-      port("power_in", PortType.POWER, PortDirection.INPUT, true, 1),
-      powerOutput("motor_out", 1),
+      powerInput(),
+      groundInput(),
+      powerOutput("motor_a", 1),
+      powerOutput("motor_b", 1),
+      powerOutput("motor_c", 1),
       canPort("can_bus", 2),
     ],
-    requirements: [{ portType: PortType.POWER, minConnections: 1 }],
-    metadata: { manufacturer: "CTR Electronics" },
+    requirements: poweredDeviceRequirements(),
+    metadata: { manufacturer: "CTR Electronics", motorType: "brushless-3-phase" },
   },
   {
     type: "CANcoder",
     displayName: "CANcoder",
     category: DeviceCategory.SENSOR,
-    ports: [canPort("can_bus", 2, true)],
-    requirements: [{ portType: PortType.CAN, minConnections: 1 }],
+    ports: [powerInput(), groundInput(), canPort("can_bus", 2, true)],
+    requirements: [
+      ...poweredDeviceRequirements()!,
+      { portType: PortType.CAN, minConnections: 1 },
+    ],
     metadata: { manufacturer: "CTR Electronics" },
   },
   {
     type: "Pigeon2",
     displayName: "Pigeon 2",
     category: DeviceCategory.SENSOR,
-    ports: [canPort("can_bus", 2, true)],
-    requirements: [{ portType: PortType.CAN, minConnections: 1 }],
+    ports: [powerInput(), groundInput(), canPort("can_bus", 2, true)],
+    requirements: [
+      ...poweredDeviceRequirements()!,
+      { portType: PortType.CAN, minConnections: 1 },
+    ],
     metadata: { manufacturer: "CTR Electronics" },
   },
   {
     type: "Limelight",
     displayName: "Limelight",
     category: DeviceCategory.VISION,
-    ports: [
-      port("power_in", PortType.POWER, PortDirection.INPUT, true, 1),
-      ethernetPort("eth_0", true),
-    ],
+    ports: [powerInput(), groundInput(), ethernetPort("eth_0", true)],
     requirements: [
-      { portType: PortType.POWER, minConnections: 1 },
+      ...poweredDeviceRequirements()!,
       { portType: PortType.ETHERNET, minConnections: 1 },
     ],
     metadata: { role: "vision-camera" },
@@ -209,12 +293,9 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
     type: "PhotonVision",
     displayName: "PhotonVision",
     category: DeviceCategory.VISION,
-    ports: [
-      port("power_in", PortType.POWER, PortDirection.INPUT, true, 1),
-      ethernetPort("eth_0", true),
-    ],
+    ports: [powerInput(), groundInput(), ethernetPort("eth_0", true)],
     requirements: [
-      { portType: PortType.POWER, minConnections: 1 },
+      ...poweredDeviceRequirements()!,
       { portType: PortType.ETHERNET, minConnections: 1 },
     ],
     metadata: { role: "vision-software" },
@@ -224,44 +305,53 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
     displayName: "Orange Pi",
     category: DeviceCategory.VISION,
     ports: [
-      port("power_in", PortType.POWER, PortDirection.INPUT, true, 1),
+      powerInput(),
+      groundInput(),
       ethernetPort("eth_0", true),
       port("usb_a", PortType.USBA, PortDirection.BIDIRECTIONAL, false, 4),
     ],
     requirements: [
-      { portType: PortType.POWER, minConnections: 1 },
+      ...poweredDeviceRequirements()!,
       { portType: PortType.ETHERNET, minConnections: 1 },
     ],
     metadata: { role: "coprocessor" },
   },
   {
     type: "Radio",
-    displayName: "Radio",
+    displayName: "OpenMesh Radio",
     category: DeviceCategory.NETWORK,
     ports: [
-      port("power_in", PortType.POWER, PortDirection.INPUT, true, 1),
-      ethernetPort("rio_eth", true),
-      ethernetPort("aux_eth"),
+      powerInput(),
+      groundInput(),
+      ethernetPort("eth_poe", true),
+      ethernetPort("eth_aux"),
     ],
     requirements: [
-      { portType: PortType.POWER, minConnections: 1 },
+      ...poweredDeviceRequirements()!,
       { portType: PortType.ETHERNET, minConnections: 1 },
     ],
-    metadata: { role: "field-network-bridge" },
+    metadata: {
+      role: "field-network-bridge",
+      models: ["OM5P-AN", "OM5P-AC"],
+      nominalVoltage: 12,
+      maxCurrentAmps: 2,
+      note: "Power from VRM 12V/2A; eth_poe is the port nearest the barrel jack",
+    },
   },
   {
     type: "EthernetSwitch",
     displayName: "Ethernet Switch",
     category: DeviceCategory.NETWORK,
     ports: [
-      port("power_in", PortType.POWER, PortDirection.INPUT, true, 1),
+      powerInput(),
+      groundInput(),
       ethernetPort("eth_0"),
       ethernetPort("eth_1"),
       ethernetPort("eth_2"),
       ethernetPort("eth_3"),
       ethernetPort("eth_4"),
     ],
-    requirements: [{ portType: PortType.POWER, minConnections: 1 }],
+    requirements: poweredDeviceRequirements(),
     metadata: { role: "network-switch" },
   },
 ];
