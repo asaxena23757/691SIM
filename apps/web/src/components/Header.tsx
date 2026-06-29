@@ -7,9 +7,19 @@ interface HeaderProps {
   onSaveFile: () => void;
   onLoadSample: () => void;
   onVerify: () => void;
+  onExportPdf: () => void;
+  isExportingPdf: boolean;
 }
 
-export function Header({ state, onOpenFile, onSaveFile, onLoadSample, onVerify }: HeaderProps) {
+export function Header({
+  state,
+  onOpenFile,
+  onSaveFile,
+  onLoadSample,
+  onVerify,
+  onExportPdf,
+  isExportingPdf,
+}: HeaderProps) {
   const { model, verification, isVerifying } = state;
   const errorCount = verification.diagnostics.filter((d: any) => d.severity === 2).length;
   const warningCount = verification.diagnostics.filter((d: any) => d.severity === 1).length;
@@ -42,6 +52,14 @@ export function Header({ state, onOpenFile, onSaveFile, onLoadSample, onVerify }
         >
           {isVerifying ? 'Verifying…' : 'Verify'}
         </button>
+        <button
+          type="button"
+          className="btn"
+          onClick={onExportPdf}
+          disabled={isExportingPdf}
+        >
+          {isExportingPdf ? 'Exporting…' : 'Download PDF'}
+        </button>
       </div>
 
       <div className="toolbar">
@@ -53,6 +71,15 @@ export function Header({ state, onOpenFile, onSaveFile, onLoadSample, onVerify }
           verification.diagnostics.length === 0 &&
           !isVerifying && <span className="badge badge-ok">No issues</span>}
       </div>
+
+      <a
+        className="github-credit"
+        href="https://github.com/asaxena23757/691SIM"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        GitHub ↗
+      </a>
     </header>
   );
 }

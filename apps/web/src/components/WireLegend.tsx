@@ -20,24 +20,7 @@ export function WireLegend() {
               {visual.kind === 'pair' ? (
                 <>
                   <line x1="0" y1="3" x2="36" y2="3" stroke={visual.colors[0]} strokeWidth="3" />
-                  <line
-                    x1="0"
-                    y1="9"
-                    x2="36"
-                    y2="9"
-                    stroke="#f8fafc"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                  />
-                  <line
-                    x1="0"
-                    y1="9"
-                    x2="36"
-                    y2="9"
-                    stroke={visual.colors[1]}
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
+                  <line x1="0" y1="9" x2="36" y2="9" stroke={visual.colors[1]} strokeWidth="3" />
                 </>
               ) : (
                 <line x1="0" y1="6" x2="36" y2="6" stroke={visual.colors[0]} strokeWidth="3" />

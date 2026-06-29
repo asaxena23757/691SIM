@@ -9,6 +9,7 @@ import {
   offsetLineEndpoints,
 } from '../utils/wireRouting';
 import { getVisiblePorts, countHiddenPorts, isPortConnected } from '../utils/visiblePorts';
+import { getPdhFuseInfo, fuseRatingForPort } from '../utils/fuses';
 import { DeviceIcon } from './DeviceIcon';
 
 interface CanvasProps {
@@ -24,7 +25,6 @@ function WireLine({
   y2,
   color,
   width,
-  outline,
 }: {
   x1: number;
   y1: number;
@@ -32,31 +32,36 @@ function WireLine({
   y2: number;
   color: string;
   width: number;
-  outline?: string;
 }) {
   return (
-    <>
-      {outline && (
-        <line
-          x1={x1}
-          y1={y1}
-          x2={x2}
-          y2={y2}
-          stroke={outline}
-          strokeWidth={width + 2}
-          strokeLinecap="round"
-        />
-      )}
-      <line
-        x1={x1}
-        y1={y1}
-        x2={x2}
-        y2={y2}
-        stroke={color}
-        strokeWidth={width}
-        strokeLinecap="round"
-      />
-    </>
+    <line
+      x1={x1}
+      y1={y1}
+      x2={x2}
+      y2={y2}
+      stroke={color}
+      strokeWidth={width}
+      strokeLinecap="round"
+    />
+  );
+}
+
+function FuseMarker({
+  x,
+  y,
+  rating,
+}: {
+  x: number;
+  y: number;
+  rating: string;
+}) {
+  return (
+    <g className="fuse-marker" transform={`translate(${x - 18}, ${y - 10})`}>
+      <rect width="36" height="20" rx="3" fill="#fbbf24" stroke="#92400e" strokeWidth="1" />
+      <text x="18" y="13" textAnchor="middle" fontSize="8" fontWeight="700" fill="#451a03">
+        {rating}
+      </text>
+    </g>
   );
 }
 
@@ -93,13 +98,12 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
         if (!conn) return null;
 
         const srcDevice = model.devices.find((d) => d.id === conn.sourceDevice);
+        const tgtDevice = model.devices.find((d) => d.id === conn.targetDevice);
+        const srcType = srcDevice?.type ?? '';
+        const tgtType = tgtDevice?.type ?? '';
         const portType =
-          resolveConnectionPortType(
-            registry,
-            conn.sourceDevice,
-            srcDevice?.type ?? '',
-            conn.sourcePort,
-          ) ?? PortType.POWER;
+          resolveConnectionPortType(registry, conn.sourceDevice, srcType, conn.sourcePort) ??
+          PortType.POWER;
         const visual = wireVisualForPortType(portType);
         const { start, end } = offsetLineEndpoints(route.start, route.end, route.bundleOffset);
         const isSelected = conn.id === selectedConnectionId;
@@ -108,6 +112,9 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
           highlightDeviceIds.includes(conn.targetDevice);
         const opacity = isSelected || isHighlighted ? 1 : 0.9;
         const offset = visual.kind === 'pair' ? 4 : 0;
+        const fuseInfo = getPdhFuseInfo(srcType, conn.sourcePort, tgtType, conn.targetPort);
+        const midX = (start.x + end.x) / 2;
+        const midY = (start.y + end.y) / 2;
 
         return (
           <g
@@ -137,7 +144,6 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
                   y2={end.y + offset}
                   color={visual.colors[1]!}
                   width={visual.width}
-                  outline="#f8fafc"
                 />
               </>
             ) : (
@@ -148,8 +154,10 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
                 y2={end.y}
                 color={visual.colors[0]!}
                 width={visual.width}
-                outline={visual.colors[0] === '#111827' ? '#f8fafc' : undefined}
               />
+            )}
+            {fuseInfo.show && (
+              <FuseMarker x={midX} y={midY} rating={fuseRatingForPort(fuseInfo.port)} />
             )}
             <title>
               {visual.label}: {conn.sourceDevice}.{conn.sourcePort} → {conn.targetDevice}.
@@ -222,6 +230,7 @@ export function Canvas({ state }: CanvasProps) {
 
   return (
     <main
+      id="circuit-canvas"
       className="canvas"
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

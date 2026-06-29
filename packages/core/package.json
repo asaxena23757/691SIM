@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "tsup && tsc -b",
+    "build": "tsup && tsc -b --force",
     "dev": "tsup --watch",
     "typecheck": "tsc -b --pretty"
   },

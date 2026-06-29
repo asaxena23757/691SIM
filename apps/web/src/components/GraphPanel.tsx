@@ -1,13 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useMemo } from 'react';
 import type { RobotModelState } from '../hooks/useRobotModel';
-import { ESTIMATOR_PACKAGE_NAME } from '@691sim/estimator';
+import { estimateRobotModel } from '@691sim/estimator';
 
 interface GraphPanelProps {
   state: RobotModelState;
 }
 
 export function GraphPanel({ state }: GraphPanelProps) {
-  const { graph, model } = state;
+  const { graph, model, registry } = state;
+
+  const estimation = useMemo(() => {
+    if (!graph) return null;
+    try {
+      return estimateRobotModel(model, { registry, graph });
+    } catch {
+      return null;
+    }
+  }, [graph, model, registry]);
 
   if (!graph) {
     return (
@@ -30,12 +40,55 @@ export function GraphPanel({ state }: GraphPanelProps) {
     <div className="panel-content" style={{ fontSize: '0.82rem' }}>
       <div className="field">
         <label>Graph Summary</label>
-        <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#cbd5e1' }}>
+        <ul className="info-list">
           <li>{graph.devices.length} device nodes</li>
           <li>{graph.ports.length} port nodes</li>
           <li>{graph.edges.length} connection edges</li>
         </ul>
       </div>
+
+      {estimation && (
+        <>
+          <div className="field">
+            <label>Power Estimation</label>
+            <ul className="info-list">
+              <li>Nominal current: {estimation.nominalCurrentAmps.toFixed(1)} A</li>
+              <li>Peak current: {estimation.peakCurrentAmps.toFixed(1)} A</li>
+              <li>Voltage under load: {estimation.estimatedVoltageUnderLoad.toFixed(2)} V</li>
+              <li>
+                Brownout risk:{' '}
+                <span className={`badge badge-${estimation.brownoutRisk === 'low' ? 'ok' : estimation.brownoutRisk === 'medium' ? 'warning' : 'error'}`}>
+                  {estimation.brownoutRisk}
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="field">
+            <label>CAN Estimation</label>
+            <ul className="info-list">
+              <li>{estimation.canDeviceCount} CAN devices</li>
+              <li>Utilization: {estimation.canUtilizationPercent.toFixed(1)}%</li>
+            </ul>
+          </div>
+
+          <div className="field">
+            <label>Weight Estimation</label>
+            <div>{estimation.totalWeightLbs.toFixed(1)} lbs (estimated)</div>
+          </div>
+
+          {estimation.diagnostics.length > 0 && (
+            <div className="field">
+              <label>Estimation Warnings</label>
+              {estimation.diagnostics.map((d) => (
+                <div key={d.id} style={{ marginBottom: '0.35rem', color: '#cbd5e1' }}>
+                  {d.message}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
 
       <div className="field">
         <label>Power Sources</label>
@@ -55,18 +108,10 @@ export function GraphPanel({ state }: GraphPanelProps) {
       <div className="field">
         <label>Connected Components</label>
         {components.map((comp: any, i: any) => (
-          <div key={i} style={{ marginBottom: '0.35rem', color: '#94a3b8' }}>
+          <div key={i} className="muted-line">
             Component {i + 1}: {comp.join(', ')}
           </div>
         ))}
-      </div>
-
-      <div className="field">
-        <label>Estimator</label>
-        <div className="coming-soon">
-          Package <code>{ESTIMATOR_PACKAGE_NAME}</code> is a stub — power draw, brownout, and
-          CAN utilization estimation coming in Phase 5.
-        </div>
       </div>
     </div>
   );

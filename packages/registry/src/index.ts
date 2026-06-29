@@ -114,6 +114,7 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
       role: "primary-power-source",
       wireColorPositive: "red",
       wireColorNegative: "black",
+      weightLbs: 13,
     },
   },
   {
@@ -157,6 +158,7 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
       lowCurrentChannels: "20-22",
       switchedChannel: "23",
       defaultCanId: 1,
+      weightLbs: 1.5,
     },
   },
   {
@@ -168,6 +170,7 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
     metadata: {
       manufacturer: "CTR Electronics",
       note: "Radio is typically powered from a 12V/2A output",
+      weightLbs: 0.4,
     },
   },
   {
@@ -190,6 +193,9 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
       manufacturer: "NI",
       role: "main-controller",
       defaultIpAddress: "10.6.91.2",
+      nominalCurrentAmps: 2.5,
+      peakCurrentAmps: 4,
+      weightLbs: 1.1,
     },
   },
   {
@@ -223,6 +229,9 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
       manufacturer: "REV Robotics",
       partNumber: "REV-11-2158",
       motorType: "brushless-3-phase",
+      nominalCurrentAmps: 15,
+      peakCurrentAmps: 40,
+      weightLbs: 0.7,
     },
   },
   {
@@ -239,7 +248,13 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
       port("usb_c", PortType.USBC, PortDirection.BIDIRECTIONAL, false, 1),
     ],
     requirements: poweredDeviceRequirements(),
-    metadata: { manufacturer: "REV Robotics", motorType: "brushless-3-phase" },
+    metadata: {
+      manufacturer: "REV Robotics",
+      motorType: "brushless-3-phase",
+      nominalCurrentAmps: 15,
+      peakCurrentAmps: 40,
+      weightLbs: 0.65,
+    },
   },
   {
     type: "TalonFX",
@@ -254,7 +269,13 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
       canPort("can_bus", 2),
     ],
     requirements: poweredDeviceRequirements(),
-    metadata: { manufacturer: "CTR Electronics", motorType: "brushless-3-phase" },
+    metadata: {
+      manufacturer: "CTR Electronics",
+      motorType: "brushless-3-phase",
+      nominalCurrentAmps: 18,
+      peakCurrentAmps: 60,
+      weightLbs: 0.8,
+    },
   },
   {
     type: "CANcoder",
@@ -265,7 +286,12 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
       ...poweredDeviceRequirements()!,
       { portType: PortType.CAN, minConnections: 1 },
     ],
-    metadata: { manufacturer: "CTR Electronics" },
+    metadata: {
+      manufacturer: "CTR Electronics",
+      nominalCurrentAmps: 0.1,
+      peakCurrentAmps: 0.2,
+      weightLbs: 0.3,
+    },
   },
   {
     type: "Pigeon2",
@@ -276,7 +302,12 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
       ...poweredDeviceRequirements()!,
       { portType: PortType.CAN, minConnections: 1 },
     ],
-    metadata: { manufacturer: "CTR Electronics" },
+    metadata: {
+      manufacturer: "CTR Electronics",
+      nominalCurrentAmps: 0.1,
+      peakCurrentAmps: 0.2,
+      weightLbs: 0.3,
+    },
   },
   {
     type: "Limelight",
@@ -287,7 +318,7 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
       ...poweredDeviceRequirements()!,
       { portType: PortType.ETHERNET, minConnections: 1 },
     ],
-    metadata: { role: "vision-camera" },
+    metadata: { role: "vision-camera", nominalCurrentAmps: 2, peakCurrentAmps: 3, weightLbs: 1.2 },
   },
   {
     type: "PhotonVision",
@@ -335,6 +366,9 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
       models: ["OM5P-AN", "OM5P-AC"],
       nominalVoltage: 12,
       maxCurrentAmps: 2,
+      nominalCurrentAmps: 1.5,
+      peakCurrentAmps: 2,
+      weightLbs: 0.5,
       note: "Power from VRM 12V/2A; eth_poe is the port nearest the barrel jack",
     },
   },
