@@ -1,6 +1,7 @@
 import { PortType, type Port } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { PORT_TYPE_NAMES, portTypeColor } from '../utils/labels';
+import { isPortConnected } from '../utils/visiblePorts';
 
 interface PropertiesPanelProps {
   state: RobotModelState;
@@ -162,14 +163,21 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
         <div className="field">
           <label>All Ports ({selectedDefinition.ports.length})</label>
           <div className="port-picker">
-            {selectedDefinition.ports.map((port: Port) => {
+            {selectedDefinition.ports
+              .filter((port: Port) => port.type !== PortType.GROUND)
+              .map((port: Port) => {
+              const connected = isPortConnected(
+                selectedDevice.id,
+                port.id,
+                model.connections,
+              );
               const isPending =
                 pendingPort?.deviceId === selectedDeviceId && pendingPort.portId === port.id;
               return (
                 <button
                   key={port.id}
                   type="button"
-                  className={`port-btn ${isPending ? 'pending' : ''}`}
+                  className={`port-btn ${isPending ? 'pending' : ''} ${connected ? 'connected' : 'disconnected'}`}
                   style={{ borderColor: portTypeColor(port.type) }}
                   title={`${PORT_TYPE_NAMES[port.type]}${port.required ? ' (required)' : ''}`}
                   onClick={() => handlePortClick(selectedDevice.id, port.id)}

@@ -19,7 +19,7 @@ function severityClass(severity: Severity): string {
 }
 
 export function DiagnosticsPanel({ state }: DiagnosticsPanelProps) {
-  const { verification, focusDiagnostic } = state;
+  const { verification, focusDiagnostic, isVerifying, verifyProgress } = state;
   const { diagnostics, hasErrors } = verification;
 
   const grouped = [
@@ -32,11 +32,13 @@ export function DiagnosticsPanel({ state }: DiagnosticsPanelProps) {
   }));
 
   return (
-    <section className="app-bottom">
-      <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
+    <section className="app-bottom diagnostics-panel">
+      <div className="panel-header diagnostics-header">
         <span>Diagnostics</span>
         <span>
-          {hasErrors ? (
+          {isVerifying ? (
+            <span className="badge badge-info">Running checks…</span>
+          ) : hasErrors ? (
             <span className="badge badge-error">Verification failed</span>
           ) : diagnostics.length > 0 ? (
             <span className="badge badge-warning">Passed with warnings</span>
@@ -45,17 +47,24 @@ export function DiagnosticsPanel({ state }: DiagnosticsPanelProps) {
           )}
         </span>
       </div>
-      <div className="panel-content" style={{ padding: '0.5rem 0.75rem' }}>
-        {diagnostics.length === 0 ? (
-          <div className="empty-state" style={{ padding: '1rem' }}>
-            No diagnostics. Run verification or edit the robot architecture.
+
+      {isVerifying && (
+        <div className="verify-progress-wrap">
+          <div className="verify-progress-bar" style={{ width: `${verifyProgress}%` }} />
+        </div>
+      )}
+
+      <div className="panel-content diagnostics-content">
+        {!isVerifying && diagnostics.length === 0 ? (
+          <div className="empty-state diagnostics-empty">
+            Click Verify to run checks on your robot wiring.
           </div>
         ) : (
           grouped.map(
             ({ severity, items }) =>
               items.length > 0 && (
-                <div key={severity} style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: '0.35rem' }}>
+                <div key={severity} className="diagnostic-group">
+                  <div className="diagnostic-group-title">
                     {SEVERITY_NAMES[severity]} ({items.length})
                   </div>
                   {items.map((diag: Diagnostic) => (

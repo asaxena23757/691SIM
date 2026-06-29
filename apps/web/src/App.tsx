@@ -9,10 +9,11 @@ import { DiagnosticsPanel } from './components/DiagnosticsPanel';
 import { RegistryExplorer } from './components/RegistryExplorer';
 import { JsonPanel } from './components/JsonPanel';
 import { GraphPanel } from './components/GraphPanel';
+import { ConnectionsPanel } from './components/ConnectionsPanel';
 import { useRobotModel } from './hooks/useRobotModel';
 import { createHealthyModel } from './utils/labels';
 
-type Tab = 'editor' | 'registry' | 'json' | 'graph';
+type Tab = 'editor' | 'registry' | 'json' | 'graph' | 'connections';
 
 export default function App() {
   const state = useRobotModel(createHealthyModel());
@@ -51,6 +52,11 @@ export default function App() {
     }
   };
 
+  const handleVerify = () => {
+    setTab('editor');
+    void state.runVerification();
+  };
+
   return (
     <div className="app">
       <input
@@ -66,7 +72,7 @@ export default function App() {
         onOpenFile={handleOpenFile}
         onSaveFile={handleSaveFile}
         onLoadSample={() => state.loadSample(createHealthyModel())}
-        onVerify={() => setTab('editor')}
+        onVerify={handleVerify}
       />
 
       <div className="tabs">
@@ -76,6 +82,13 @@ export default function App() {
           onClick={() => setTab('editor')}
         >
           Editor
+        </button>
+        <button
+          type="button"
+          className={`tab ${tab === 'connections' ? 'active' : ''}`}
+          onClick={() => setTab('connections')}
+        >
+          Wires
         </button>
         <button
           type="button"
@@ -101,31 +114,37 @@ export default function App() {
       </div>
 
       {tab === 'editor' && (
-        <>
+        <div className="editor-layout">
           <WireLegend />
+          <DiagnosticsPanel state={state} />
           <div className="app-body">
             <DevicePalette state={state} />
             <Canvas state={state} />
             <PropertiesPanel state={state} />
           </div>
-          <DiagnosticsPanel state={state} />
-        </>
+        </div>
+      )}
+
+      {tab === 'connections' && (
+        <div className="tab-panel">
+          <ConnectionsPanel state={state} />
+        </div>
       )}
 
       {tab === 'registry' && (
-        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <div className="tab-panel">
           <RegistryExplorer state={state} />
         </div>
       )}
 
       {tab === 'json' && (
-        <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <div className="tab-panel">
           <JsonPanel state={state} />
         </div>
       )}
 
       {tab === 'graph' && (
-        <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <div className="tab-panel">
           <GraphPanel state={state} />
         </div>
       )}

@@ -1,9 +1,14 @@
 import { useCallback, useRef, type PointerEvent } from 'react';
 import { PortType, type DeviceInstance } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
-import { categoryColor, portTypeColor, PORT_TYPE_NAMES } from '../utils/labels';
+import { portTypeColor, PORT_TYPE_NAMES } from '../utils/labels';
 import { wireVisualForPortType, resolveConnectionPortType } from '../utils/wireStyles';
-import { getVisiblePorts, countHiddenPorts } from '../utils/visiblePorts';
+import {
+  computeWireRoutes,
+  getDisplayConnections,
+  offsetLineEndpoints,
+} from '../utils/wireRouting';
+import { getVisiblePorts, countHiddenPorts, isPortConnected } from '../utils/visiblePorts';
 import { DeviceIcon } from './DeviceIcon';
 
 interface CanvasProps {
@@ -12,26 +17,81 @@ interface CanvasProps {
 
 const DEVICE_W = 168;
 
+function WireLine({
+  x1,
+  y1,
+  x2,
+  y2,
+  color,
+  width,
+  outline,
+}: {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  color: string;
+  width: number;
+  outline?: string;
+}) {
+  return (
+    <>
+      {outline && (
+        <line
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
+          stroke={outline}
+          strokeWidth={width + 2}
+          strokeLinecap="round"
+        />
+      )}
+      <line
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke={color}
+        strokeWidth={width}
+        strokeLinecap="round"
+      />
+    </>
+  );
+}
+
 function ConnectionLines({ state }: { state: RobotModelState }) {
   const {
     model,
     registry,
+    deviceTypes,
     selectedConnectionId,
     setSelectedConnectionId,
     setSelectedDeviceId,
     highlightDeviceIds,
   } = state;
 
-  const deviceCenter = (deviceId: string) => {
+  const getCenter = (deviceId: string) => {
     const device = model.devices.find((d) => d.id === deviceId);
-    const x = (device?.position?.x ?? 0) + DEVICE_W / 2;
-    const y = (device?.position?.y ?? 0) + 72;
-    return { x, y };
+    return {
+      x: (device?.position?.x ?? 0) + DEVICE_W / 2,
+      y: (device?.position?.y ?? 0) + 72,
+    };
   };
+
+  const displayConnections = getDisplayConnections(
+    model.connections,
+    registry,
+    deviceTypes,
+  );
+  const routes = computeWireRoutes(displayConnections, getCenter);
 
   return (
     <>
-      {model.connections.map((conn) => {
+      {routes.map((route) => {
+        const conn = displayConnections.find((c) => c.id === route.connectionId);
+        if (!conn) return null;
+
         const srcDevice = model.devices.find((d) => d.id === conn.sourceDevice);
         const portType =
           resolveConnectionPortType(
@@ -41,13 +101,12 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
             conn.sourcePort,
           ) ?? PortType.POWER;
         const visual = wireVisualForPortType(portType);
-        const src = deviceCenter(conn.sourceDevice);
-        const tgt = deviceCenter(conn.targetDevice);
+        const { start, end } = offsetLineEndpoints(route.start, route.end, route.bundleOffset);
         const isSelected = conn.id === selectedConnectionId;
         const isHighlighted =
           highlightDeviceIds.includes(conn.sourceDevice) ||
           highlightDeviceIds.includes(conn.targetDevice);
-        const opacity = isSelected || isHighlighted ? 1 : 0.85;
+        const opacity = isSelected || isHighlighted ? 1 : 0.9;
         const offset = visual.kind === 'pair' ? 4 : 0;
 
         return (
@@ -63,34 +122,33 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
           >
             {visual.kind === 'pair' ? (
               <>
-                <line
-                  x1={src.x}
-                  y1={src.y - offset}
-                  x2={tgt.x}
-                  y2={tgt.y - offset}
-                  stroke={visual.colors[0]}
-                  strokeWidth={visual.width}
-                  strokeLinecap="round"
+                <WireLine
+                  x1={start.x}
+                  y1={start.y - offset}
+                  x2={end.x}
+                  y2={end.y - offset}
+                  color={visual.colors[0]!}
+                  width={visual.width}
                 />
-                <line
-                  x1={src.x}
-                  y1={src.y + offset}
-                  x2={tgt.x}
-                  y2={tgt.y + offset}
-                  stroke={visual.colors[1]}
-                  strokeWidth={visual.width}
-                  strokeLinecap="round"
+                <WireLine
+                  x1={start.x}
+                  y1={start.y + offset}
+                  x2={end.x}
+                  y2={end.y + offset}
+                  color={visual.colors[1]!}
+                  width={visual.width}
+                  outline="#f8fafc"
                 />
               </>
             ) : (
-              <line
-                x1={src.x}
-                y1={src.y}
-                x2={tgt.x}
-                y2={tgt.y}
-                stroke={visual.colors[0]}
-                strokeWidth={visual.width}
-                strokeLinecap="round"
+              <WireLine
+                x1={start.x}
+                y1={start.y}
+                x2={end.x}
+                y2={end.y}
+                color={visual.colors[0]!}
+                width={visual.width}
+                outline={visual.colors[0] === '#111827' ? '#f8fafc' : undefined}
               />
             )}
             <title>
@@ -108,6 +166,7 @@ export function Canvas({ state }: CanvasProps) {
   const {
     model,
     registry,
+    errorDeviceIds,
     selectedDeviceId,
     setSelectedDeviceId,
     selectedConnectionId,
@@ -183,7 +242,7 @@ export function Canvas({ state }: CanvasProps) {
         const y = device.position?.y ?? 0;
         const isSelected = device.id === selectedDeviceId;
         const isHighlighted = highlightDeviceIds.includes(device.id);
-        const color = def ? categoryColor(def.category) : '#64748b';
+        const hasError = errorDeviceIds.has(device.id);
         const visiblePorts = def
           ? getVisiblePorts(device.id, def, model.connections)
           : [];
@@ -194,36 +253,29 @@ export function Canvas({ state }: CanvasProps) {
         return (
           <div
             key={device.id}
-            className={`device-node ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
-            style={{ left: x, top: y, borderColor: color, width: DEVICE_W }}
+            className={`device-node ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''} ${hasError ? 'device-error' : ''}`}
+            style={{ left: x, top: y, width: DEVICE_W }}
             onClick={(e: { stopPropagation(): void }) => e.stopPropagation()}
             onPointerDown={(e: PointerEvent) => onPointerDown(device.id, e)}
           >
             <div className="device-image-wrap">
               <DeviceIcon type={device.type} size={52} />
             </div>
-            <div className="device-title" style={{ color }}>
+            <div className="device-title">
               {device.label ?? def?.displayName ?? device.type}
             </div>
             <div className="device-type">{device.type}</div>
             <div className="device-ports">
               {visiblePorts.map((port) => {
+                const connected = isPortConnected(device.id, port.id, model.connections);
                 const isPending =
                   pendingPort?.deviceId === device.id && pendingPort?.portId === port.id;
                 return (
                   <button
                     key={port.id}
                     type="button"
-                    className={`port-btn ${isPending ? 'pending' : ''}`}
-                    style={{
-                      borderColor: portTypeColor(port.type),
-                      color:
-                        port.type === PortType.POWER
-                          ? '#fecaca'
-                          : port.type === PortType.GROUND
-                            ? '#cbd5e1'
-                            : undefined,
-                    }}
+                    className={`port-btn ${isPending ? 'pending' : ''} ${connected ? 'connected' : 'disconnected'}`}
+                    style={{ borderColor: portTypeColor(port.type) }}
                     title={`${port.id} (${PORT_TYPE_NAMES[port.type]})`}
                     onClick={(e: { stopPropagation(): void }) => {
                       e.stopPropagation();

@@ -27,9 +27,9 @@ export function DevicePalette({ state }: DevicePaletteProps) {
   })).filter((group) => group.devices.length > 0);
 
   return (
-    <aside className="panel">
+    <aside className="panel palette-panel">
       <div className="panel-header">Device Palette</div>
-      <div className="panel-content">
+      <div className="panel-content palette-scroll">
         {byCategory.map(({ category, devices: groupDevices }) => (
           <div key={category} style={{ marginBottom: '1rem' }}>
             <div

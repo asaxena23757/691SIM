@@ -1,15 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useMemo, useState } from 'react';
-import type { Connection, DeviceInstance, RobotModel } from '@691sim/core';
+import type { Connection, DeviceInstance, Diagnostic, RobotModel } from '@691sim/core';
 import { createDefaultDeviceRegistry } from '@691sim/registry';
 import { verifyRobotModel, buildGraph } from '@691sim/verifier';
 import { exportProject, importProject, validateProject } from '@691sim/serialization';
 import { createEmptyModel, nextConnectionId, nextDeviceId } from '../utils/labels';
+import {
+  createPairedGroundConnection,
+  groundConnectionIdForPower,
+  isPowerConnection,
+} from '../utils/groundPairing';
 
 export type SelectedPort = {
   deviceId: string;
   portId: string;
 };
+
+const EMPTY_VERIFICATION = { diagnostics: [] as Diagnostic[], hasErrors: false };
 
 export function useRobotModel(initial: RobotModel) {
   const [model, setModel] = useState<RobotModel>(initial);
@@ -17,10 +24,11 @@ export function useRobotModel(initial: RobotModel) {
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
   const [highlightDeviceIds, setHighlightDeviceIds] = useState<string[]>([]);
   const [pendingPort, setPendingPort] = useState<SelectedPort | null>(null);
+  const [verification, setVerification] = useState(EMPTY_VERIFICATION);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyProgress, setVerifyProgress] = useState(0);
 
   const registry = useMemo(() => createDefaultDeviceRegistry(), []);
-
-  const verification = useMemo(() => verifyRobotModel(model, { registry }), [model, registry]);
 
   const graph = useMemo(() => {
     try {
@@ -29,6 +37,21 @@ export function useRobotModel(initial: RobotModel) {
       return null;
     }
   }, [model, registry]);
+
+  const deviceTypes = useMemo(
+    () => new Map(model.devices.map((d: DeviceInstance) => [d.id, d.type])),
+    [model.devices],
+  );
+
+  const errorDeviceIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const diag of verification.diagnostics) {
+      if (diag.severity === 2) {
+        diag.deviceIds?.forEach((id) => ids.add(id));
+      }
+    }
+    return ids;
+  }, [verification.diagnostics]);
 
   const selectedDevice = useMemo(
     () => model.devices.find((d: any) => d.id === selectedDeviceId) ?? null,
@@ -44,12 +67,28 @@ export function useRobotModel(initial: RobotModel) {
     setModel((prev: any) => updater(prev));
   }, []);
 
+  const runVerification = useCallback(async () => {
+    setIsVerifying(true);
+    setVerifyProgress(0);
+
+    const steps = [15, 40, 65, 85, 100];
+    for (const step of steps) {
+      await new Promise((r) => setTimeout(r, 80));
+      setVerifyProgress(step);
+    }
+
+    const result = verifyRobotModel(model, { registry });
+    setVerification(result);
+    setIsVerifying(false);
+  }, [model, registry]);
+
   const newProject = useCallback((name?: string) => {
     setModel(createEmptyModel(name));
     setSelectedDeviceId(null);
     setSelectedConnectionId(null);
     setPendingPort(null);
     setHighlightDeviceIds([]);
+    setVerification(EMPTY_VERIFICATION);
   }, []);
 
   const loadSample = useCallback((sample: RobotModel) => {
@@ -58,6 +97,7 @@ export function useRobotModel(initial: RobotModel) {
     setSelectedConnectionId(null);
     setPendingPort(null);
     setHighlightDeviceIds([]);
+    setVerification(EMPTY_VERIFICATION);
   }, []);
 
   const loadFromJson = useCallback((json: string) => {
@@ -67,6 +107,7 @@ export function useRobotModel(initial: RobotModel) {
     setSelectedConnectionId(null);
     setPendingPort(null);
     setHighlightDeviceIds([]);
+    setVerification(EMPTY_VERIFICATION);
     return loaded;
   }, []);
 
@@ -141,20 +182,38 @@ export function useRobotModel(initial: RobotModel) {
         targetDevice: target.deviceId,
         targetPort: target.portId,
       };
+
+      const sourceType = deviceTypes.get(source.deviceId) ?? '';
+      const targetType = deviceTypes.get(target.deviceId) ?? '';
+      const extra: Connection[] = [];
+
+      if (isPowerConnection(registry, connection, sourceType)) {
+        const ground = createPairedGroundConnection(
+          registry,
+          connection,
+          sourceType,
+          targetType,
+        );
+        if (ground) extra.push(ground);
+      }
+
       updateModel((prev) => ({
         ...prev,
-        connections: [...prev.connections, connection],
+        connections: [...prev.connections, connection, ...extra],
       }));
       setPendingPort(null);
     },
-    [model.connections, updateModel],
+    [deviceTypes, model.connections, registry, updateModel],
   );
 
   const removeConnection = useCallback(
     (connectionId: string) => {
+      const groundId = groundConnectionIdForPower(connectionId);
       updateModel((prev) => ({
         ...prev,
-        connections: prev.connections.filter((c: any) => c.id !== connectionId),
+        connections: prev.connections.filter(
+          (c: any) => c.id !== connectionId && c.id !== groundId,
+        ),
       }));
       if (selectedConnectionId === connectionId) setSelectedConnectionId(null);
     },
@@ -190,6 +249,11 @@ export function useRobotModel(initial: RobotModel) {
     setModel,
     registry,
     verification,
+    isVerifying,
+    verifyProgress,
+    runVerification,
+    errorDeviceIds,
+    deviceTypes,
     graph,
     selectedDeviceId,
     setSelectedDeviceId,

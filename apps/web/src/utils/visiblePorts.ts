@@ -1,12 +1,10 @@
 import type { Connection, DeviceDefinition, Port } from '@691sim/core';
+import { PortType } from '@691sim/core';
 
 const PRIMARY_PORTS = new Set([
   'main_power',
   'main_power_in',
   'power_in',
-  'ground',
-  'ground_in',
-  'ground_bus',
   'can_bus',
   'usb_c',
   'usb_b',
@@ -19,6 +17,18 @@ const PRIMARY_PORTS = new Set([
   'motor_b',
   'motor_c',
 ]);
+
+export function isPortConnected(
+  deviceId: string,
+  portId: string,
+  connections: Connection[],
+): boolean {
+  return connections.some(
+    (c) =>
+      (c.sourceDevice === deviceId && c.sourcePort === portId) ||
+      (c.targetDevice === deviceId && c.targetPort === portId),
+  );
+}
 
 export function getVisiblePorts(
   deviceId: string,
@@ -38,18 +48,20 @@ export function getVisiblePorts(
 
   const visible = definition.ports.filter(
     (port) =>
-      port.required ||
-      PRIMARY_PORTS.has(port.id) ||
-      connectedPortIds.has(port.id),
+      port.type !== PortType.GROUND &&
+      (port.required ||
+        PRIMARY_PORTS.has(port.id) ||
+        port.id.startsWith('channel_') ||
+        connectedPortIds.has(port.id)),
   );
 
-  if (visible.length <= 12) {
+  if (visible.length <= 16) {
     return visible;
   }
 
   const channels = visible.filter((port) => port.id.startsWith('channel_'));
   const nonChannels = visible.filter((port) => !port.id.startsWith('channel_'));
-  return [...nonChannels, ...channels.slice(0, 4)];
+  return [...nonChannels, ...channels.slice(0, 6)];
 }
 
 export function countHiddenPorts(
@@ -57,5 +69,6 @@ export function countHiddenPorts(
   definition: DeviceDefinition,
   connections: Connection[],
 ): number {
-  return definition.ports.length - getVisiblePorts(deviceId, definition, connections).length;
+  const uiPorts = definition.ports.filter((p) => p.type !== PortType.GROUND);
+  return uiPorts.length - getVisiblePorts(deviceId, definition, connections).length;
 }
