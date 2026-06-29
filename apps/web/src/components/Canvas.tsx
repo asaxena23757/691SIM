@@ -112,7 +112,13 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
           highlightDeviceIds.includes(conn.targetDevice);
         const opacity = isSelected || isHighlighted ? 1 : 0.9;
         const offset = visual.kind === 'pair' ? 4 : 0;
-        const fuseInfo = getPdhFuseInfo(srcType, conn.sourcePort, tgtType, conn.targetPort);
+        const fuseInfo = getPdhFuseInfo(
+          portType,
+          srcType,
+          conn.sourcePort,
+          tgtType,
+          conn.targetPort,
+        );
         const midX = (start.x + end.x) / 2;
         const midY = (start.y + end.y) / 2;
 

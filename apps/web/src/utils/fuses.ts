@@ -1,9 +1,15 @@
+import { PortType } from '@691sim/core';
+
 export function getPdhFuseInfo(
+  portType: PortType,
   sourceDeviceType: string,
   sourcePort: string,
   targetDeviceType: string,
   targetPort: string,
 ): { show: boolean; port: string } {
+  if (portType !== PortType.POWER) {
+    return { show: false, port: '' };
+  }
   if (sourceDeviceType === 'PDH' || sourceDeviceType === 'PDP') {
     if (sourcePort.startsWith('channel_') || sourcePort === 'vrm_out') {
       return { show: true, port: sourcePort };

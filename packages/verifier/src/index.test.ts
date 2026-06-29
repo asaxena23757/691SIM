@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildGraph,
   DiagnosticCollection,
+  getUnpoweredDeviceIds,
   verifyRobotModel,
   type VerificationPass,
 } from "./index.js";
@@ -161,5 +162,25 @@ describe("verifyRobotModel", () => {
 
     expect(result.diagnostics).toHaveLength(1);
     expect(collection.hasErrors()).toBe(false);
+  });
+
+  it("flags all powered devices (including VRM and radio) when battery is removed", () => {
+    const model = healthyModel();
+    model.connections = model.connections.filter(
+      (connection) =>
+        connection.sourceDevice !== "battery-1" &&
+        connection.targetDevice !== "battery-1",
+    );
+
+    const graph = buildGraph(model);
+    const unpowered = getUnpoweredDeviceIds(graph);
+    const codes = verifyRobotModel(model).diagnostics.map(
+      (diagnostic) => diagnostic.code,
+    );
+
+    expect(unpowered).toContain("vrm-1");
+    expect(unpowered).toContain("radio-1");
+    expect(unpowered).toContain("pdh-1");
+    expect(codes).toContain("POWER_NOT_REACHABLE");
   });
 });

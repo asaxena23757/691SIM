@@ -2,7 +2,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { Connection, DeviceInstance, Diagnostic, RobotModel } from '@691sim/core';
 import { createDefaultDeviceRegistry } from '@691sim/registry';
-import { verifyRobotModel, buildGraph } from '@691sim/verifier';
+import { verifyRobotModel, buildGraph, getUnpoweredDeviceIds } from '@691sim/verifier';
 import { exportProject, importProject, validateProject } from '@691sim/serialization';
 import { createEmptyModel, nextConnectionId, nextDeviceId } from '../utils/labels';
 import {
@@ -45,13 +45,20 @@ export function useRobotModel(initial: RobotModel) {
 
   const errorDeviceIds = useMemo(() => {
     const ids = new Set<string>();
+
+    if (graph) {
+      for (const id of getUnpoweredDeviceIds(graph)) {
+        ids.add(id);
+      }
+    }
+
     for (const diag of verification.diagnostics) {
       if (diag.severity === 2) {
         diag.deviceIds?.forEach((id) => ids.add(id));
       }
     }
     return ids;
-  }, [verification.diagnostics]);
+  }, [graph, verification.diagnostics]);
 
   const selectedDevice = useMemo(
     () => model.devices.find((d: any) => d.id === selectedDeviceId) ?? null,

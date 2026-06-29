@@ -81,6 +81,48 @@ function isCoprocessor(node: DeviceNode): boolean {
   );
 }
 
+function deviceRequiresPoweredPath(node: DeviceNode): boolean {
+  if (isPowerSource(node)) {
+    return false;
+  }
+
+  return node.definition.ports.some(
+    (port) =>
+      port.type === PortType.POWER &&
+      port.direction === PortDirection.INPUT &&
+      port.required,
+  );
+}
+
+function deviceRequiresGroundPath(node: DeviceNode): boolean {
+  if (isPowerSource(node)) {
+    return false;
+  }
+
+  return node.definition.ports.some(
+    (port) =>
+      port.type === PortType.GROUND &&
+      port.direction === PortDirection.INPUT &&
+      port.required,
+  );
+}
+
+/** Device IDs that lack a battery power or ground path (for live UI highlighting). */
+export function getUnpoweredDeviceIds(graph: RobotGraph): string[] {
+  const ids = new Set<string>();
+
+  for (const device of graph.devices) {
+    if (deviceRequiresPoweredPath(device) && !graph.powerReachable(device.id)) {
+      ids.add(device.id);
+    }
+    if (deviceRequiresGroundPath(device) && !graph.groundReachable(device.id)) {
+      ids.add(device.id);
+    }
+  }
+
+  return [...ids];
+}
+
 export class RobotGraph {
   readonly devices: DeviceNode[];
   readonly ports: PortNode[];
@@ -624,16 +666,11 @@ export const powerVerificationPass: VerificationPass = {
     }
 
     for (const device of graph.devices) {
-      if (isPowerSource(device) || !deviceHasPortType(device, PortType.POWER)) {
+      if (!deviceRequiresPoweredPath(device)) {
         continue;
       }
 
-      const needsPowerPath =
-        isController(device) ||
-        device.definition.category === DeviceCategory.MOTOR_CONTROLLER ||
-        isCoprocessor(device);
-
-      if (needsPowerPath && !graph.powerReachable(device.id)) {
+      if (!graph.powerReachable(device.id)) {
         diagnostics.push(
           diagnostic(
             "POWER_NOT_REACHABLE",
@@ -644,11 +681,7 @@ export const powerVerificationPass: VerificationPass = {
         );
       }
 
-      if (
-        needsPowerPath &&
-        deviceHasPortType(device, PortType.GROUND) &&
-        !graph.groundReachable(device.id)
-      ) {
+      if (deviceRequiresGroundPath(device) && !graph.groundReachable(device.id)) {
         diagnostics.push(
           diagnostic(
             "GROUND_NOT_REACHABLE",

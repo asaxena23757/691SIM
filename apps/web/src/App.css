@@ -459,8 +459,8 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  min-width: 1200px;
-  min-height: 600px;
+  min-width: 1600px;
+  min-height: 720px;
   pointer-events: none;
 }
 
