@@ -8,6 +8,7 @@
     "build": "pnpm -r --filter=./packages/* run build && pnpm --filter @691sim/web run build",
     "dev": "pnpm -r --filter=./packages/* run dev",
     "dev:web": "pnpm --filter @691sim/web run dev",
+    "deploy:web": "pnpm run build && pnpm --filter @691sim/web run deploy",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

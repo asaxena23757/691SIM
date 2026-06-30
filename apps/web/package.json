@@ -3,11 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "homepage": "https://asaxena23757.github.io/691sim",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --pretty"
+    "typecheck": "tsc -b --pretty",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@691sim/core": "workspace:*",
@@ -15,15 +18,16 @@
     "@691sim/registry": "workspace:*",
     "@691sim/serialization": "workspace:*",
     "@691sim/verifier": "workspace:*",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
     "html2canvas": "^1.4.1",
-    "jspdf": "^2.5.2"
+    "jspdf": "^2.5.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@vitejs/plugin-react": "^4.3.4",
+    "gh-pages": "^6.3.0",
     "typescript": "^5.7.3",
     "vite": "^6.0.6"
   }
