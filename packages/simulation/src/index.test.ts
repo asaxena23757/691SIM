@@ -1,4 +1,4 @@
-import { createHealthyRobotModel, type RobotModel } from '@691sim/core';
+import { createHealthyRobotModel } from '@691sim/core';
 import { describe, expect, it } from 'vitest';
 import {
   AWG_TABLE,

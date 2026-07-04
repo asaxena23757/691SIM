@@ -42,7 +42,6 @@ export function verifyCanTopology(
 ): CanTopologyResult {
   const adjacency = new Map<string, Set<string>>();
   const seenEdges = new Set<string>();
-  let uniqueEdgeCount = 0;
 
   const touch = (id: string) => {
     if (!adjacency.has(id)) adjacency.set(id, new Set());
@@ -54,7 +53,6 @@ export function verifyCanTopology(
     const key = edgeKey(edge.a, edge.b);
     if (seenEdges.has(key)) continue;
     seenEdges.add(key);
-    uniqueEdgeCount += 1;
     touch(edge.a).add(edge.b);
     touch(edge.b).add(edge.a);
   }

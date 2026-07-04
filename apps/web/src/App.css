@@ -251,7 +251,7 @@
   display: none;
 }
 
-.collapsible-panel.side-right {
+.collapsible-panel.collapsible-right {
   border-right: none;
   border-left: 1px solid var(--border);
 }

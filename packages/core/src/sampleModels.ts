@@ -150,16 +150,11 @@ export function createHealthyRobotModel(): RobotModel {
         targetDevice: "radio-1",
         targetPort: "ground",
       },
+      // CAN daisy chain: roboRIO (built-in 120Ω terminator) -> devices -> PDH
+      // (switchable 120Ω terminator) so both physical ends are terminated.
       {
-        id: "rio-pdh-can",
+        id: "rio-spark-can",
         sourceDevice: "rio-1",
-        sourcePort: "can_bus",
-        targetDevice: "pdh-1",
-        targetPort: "can_bus",
-      },
-      {
-        id: "pdh-spark-can",
-        sourceDevice: "pdh-1",
         sourcePort: "can_bus",
         targetDevice: "spark-1",
         targetPort: "can_bus",
@@ -169,6 +164,13 @@ export function createHealthyRobotModel(): RobotModel {
         sourceDevice: "spark-1",
         sourcePort: "can_bus",
         targetDevice: "coder-1",
+        targetPort: "can_bus",
+      },
+      {
+        id: "coder-pdh-can",
+        sourceDevice: "coder-1",
+        sourcePort: "can_bus",
+        targetDevice: "pdh-1",
         targetPort: "can_bus",
       },
       {
