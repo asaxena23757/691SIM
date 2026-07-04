@@ -51,6 +51,11 @@ export interface Connection {
   sourcePort: string;
   targetDevice: string;
   targetPort: string;
+  /**
+   * Optional per-wire attributes (e.g. AWG `gauge` and `lengthInches`) used
+   * by the simulation engine for voltage-drop and ampacity calculations.
+   */
+  metadata?: Record<string, unknown>;
 }
 
 export interface Vector {

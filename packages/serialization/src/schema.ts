@@ -30,6 +30,7 @@ export const ConnectionSchema = z.object({
   sourcePort: z.string().min(1),
   targetDevice: z.string().min(1),
   targetPort: z.string().min(1),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const RobotModelSchema = z.object({

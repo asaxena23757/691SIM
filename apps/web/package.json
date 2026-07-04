@@ -17,6 +17,7 @@
     "@691sim/estimator": "workspace:*",
     "@691sim/registry": "workspace:*",
     "@691sim/serialization": "workspace:*",
+    "@691sim/simulation": "workspace:*",
     "@691sim/verifier": "workspace:*",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.2",

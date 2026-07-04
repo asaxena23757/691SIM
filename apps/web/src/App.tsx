@@ -9,16 +9,18 @@ import { DiagnosticsPanel } from './components/DiagnosticsPanel';
 import { RegistryExplorer } from './components/RegistryExplorer';
 import { JsonPanel } from './components/JsonPanel';
 import { GraphPanel } from './components/GraphPanel';
+import { SimulationPanel } from './components/SimulationPanel';
 import { ConnectionsPanel } from './components/ConnectionsPanel';
 import { CollapsiblePanel } from './components/CollapsiblePanel';
 import { useRobotModel } from './hooks/useRobotModel';
 import { createHealthyModel } from './utils/labels';
 import { exportCircuitPdf } from './utils/exportPdf';
 
-type Tab = 'editor' | 'registry' | 'json' | 'graph' | 'connections';
+type Tab = 'editor' | 'simulation' | 'registry' | 'json' | 'graph' | 'connections';
 
 const TAB_HINTS: Record<Tab, string> = {
   editor: 'Place devices, wire ports together, and verify your robot circuit.',
+  simulation: 'Run the physics engine: live voltage, brownout risk, wire ampacity, and CAN topology.',
   connections: 'View every wire connection as plain text for debugging.',
   registry: 'Browse built-in FRC device specs, ports, and requirements.',
   json: 'Import, export, or hand-edit the project JSON file.',
@@ -117,6 +119,7 @@ export default function App() {
         {(
           [
             ['editor', 'Editor'],
+            ['simulation', 'Simulation'],
             ['connections', 'Wires'],
             ['registry', 'Device Registry'],
             ['json', 'JSON'],
@@ -137,6 +140,13 @@ export default function App() {
 
       {tab === 'editor' && (
         <div className="editor-layout">
+          {state.simulation?.voltage.brownoutRisk && (
+            <div className="sim-alert sim-alert-danger sim-banner">
+              ⚠ ROBORIO BROWNOUT RISK DETECTED — system sags to{' '}
+              {state.simulation.voltage.systemVoltage.toFixed(2)} V. Open the Simulation tab for
+              details.
+            </div>
+          )}
           <WireLegend />
           <div className={bodyClass}>
             <CollapsiblePanel
@@ -162,6 +172,12 @@ export default function App() {
             collapsed={diagnosticsCollapsed}
             onToggle={() => setDiagnosticsCollapsed((v) => !v)}
           />
+        </div>
+      )}
+
+      {tab === 'simulation' && (
+        <div className="tab-panel">
+          <SimulationPanel state={state} />
         </div>
       )}
 
