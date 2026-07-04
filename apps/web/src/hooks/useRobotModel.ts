@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import type { Connection, DeviceInstance, Diagnostic, RobotModel } from '@691sim/core';
 import { createDefaultDeviceRegistry } from '@691sim/registry';
 import { verifyRobotModel, buildGraph, getUnpoweredDeviceIds } from '@691sim/verifier';
+import { simulateCircuit, type LoadMode } from '@691sim/simulation';
 import { exportProject, importProject, validateProject } from '@691sim/serialization';
 import { createEmptyModel, nextConnectionId, nextDeviceId } from '../utils/labels';
 import {
@@ -27,6 +28,7 @@ export function useRobotModel(initial: RobotModel) {
   const [verification, setVerification] = useState(EMPTY_VERIFICATION);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyProgress, setVerifyProgress] = useState(0);
+  const [simulationMode, setSimulationMode] = useState<LoadMode>('peak');
 
   const registry = useMemo(() => createDefaultDeviceRegistry(), []);
 
@@ -41,6 +43,19 @@ export function useRobotModel(initial: RobotModel) {
   const deviceTypes = useMemo(
     () => new Map(model.devices.map((d: DeviceInstance) => [d.id, d.type])),
     [model.devices],
+  );
+
+  const simulation = useMemo(() => {
+    try {
+      return simulateCircuit(model, { registry, mode: simulationMode });
+    } catch {
+      return null;
+    }
+  }, [model, registry, simulationMode]);
+
+  const ampacityConnectionIds = useMemo(
+    () => new Set((simulation?.ampacityViolations ?? []).map((w) => w.connectionId)),
+    [simulation],
   );
 
   const errorDeviceIds = useMemo(() => {
@@ -213,6 +228,20 @@ export function useRobotModel(initial: RobotModel) {
     [deviceTypes, model.connections, registry, updateModel],
   );
 
+  const updateConnection = useCallback(
+    (connectionId: string, patch: Partial<Connection>) => {
+      updateModel((prev) => ({
+        ...prev,
+        connections: prev.connections.map((c: any) =>
+          c.id === connectionId
+            ? { ...c, ...patch, metadata: { ...c.metadata, ...patch.metadata } }
+            : c,
+        ),
+      }));
+    },
+    [updateModel],
+  );
+
   const removeConnection = useCallback(
     (connectionId: string) => {
       const groundId = groundConnectionIdForPower(connectionId);
@@ -262,6 +291,10 @@ export function useRobotModel(initial: RobotModel) {
     errorDeviceIds,
     deviceTypes,
     graph,
+    simulation,
+    simulationMode,
+    setSimulationMode,
+    ampacityConnectionIds,
     selectedDeviceId,
     setSelectedDeviceId,
     selectedConnectionId,
@@ -280,6 +313,7 @@ export function useRobotModel(initial: RobotModel) {
     updateDevice,
     moveDevice,
     addConnection,
+    updateConnection,
     removeConnection,
     handlePortClick,
     focusDiagnostic,

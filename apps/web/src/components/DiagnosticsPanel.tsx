@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Severity, type Diagnostic } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { SEVERITY_NAMES } from '../utils/labels';

@@ -65,6 +65,18 @@ function FuseMarker({
   );
 }
 
+function AmpacityHazardMarker({ x, y }: { x: number; y: number }) {
+  return (
+    <g className="ampacity-marker" transform={`translate(${x}, ${y + 14})`}>
+      <title>Exceeds Ampacity: Safety Hazard!</title>
+      <path d="M0,-9 L9,7 L-9,7 Z" fill="#dc2626" stroke="#7f1d1d" strokeWidth="1" />
+      <text x="0" y="6" textAnchor="middle" fontSize="10" fontWeight="800" fill="#fff">
+        !
+      </text>
+    </g>
+  );
+}
+
 function ConnectionLines({ state }: { state: RobotModelState }) {
   const {
     model,
@@ -74,6 +86,7 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
     setSelectedConnectionId,
     setSelectedDeviceId,
     highlightDeviceIds,
+    ampacityConnectionIds,
   } = state;
 
   const getCenter = (deviceId: string) => {
@@ -165,6 +178,7 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
             {fuseInfo.show && (
               <FuseMarker x={midX} y={midY} rating={fuseRatingForPort(fuseInfo.port)} />
             )}
+            {ampacityConnectionIds.has(conn.id) && <AmpacityHazardMarker x={midX} y={midY} />}
             <title>
               {visual.label}: {conn.sourceDevice}.{conn.sourcePort} → {conn.targetDevice}.
               {conn.targetPort}

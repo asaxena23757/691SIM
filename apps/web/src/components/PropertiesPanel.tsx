@@ -1,4 +1,5 @@
 import { PortType, type Port } from '@691sim/core';
+import { SUPPORTED_GAUGES, DEFAULT_WIRE_LENGTH_INCHES } from '@691sim/simulation';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { PORT_TYPE_NAMES, portTypeColor } from '../utils/labels';
 import { isPortConnected } from '../utils/visiblePorts';
@@ -16,15 +17,28 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
     selectedDeviceId,
     updateDevice,
     removeDevice,
+    updateConnection,
     removeConnection,
     pendingPort,
     setPendingPort,
     handlePortClick,
+    simulation,
   } = state;
 
   const selectedConnection = model.connections.find((c) => c.id === selectedConnectionId);
 
   if (selectedConnection) {
+    const wireSim = simulation?.voltage.wireCurrents.find(
+      (w) => w.connectionId === selectedConnection.id,
+    );
+    const isPowerWire = wireSim !== undefined;
+    const currentGauge = Number(
+      selectedConnection.metadata?.gauge ?? wireSim?.gauge ?? 12,
+    );
+    const currentLength = Number(
+      selectedConnection.metadata?.lengthInches ?? wireSim?.lengthInches ?? DEFAULT_WIRE_LENGTH_INCHES,
+    );
+
     return (
       <div className="properties-scroll">
         <div className="field">
@@ -45,6 +59,58 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
             readOnly
           />
         </div>
+
+        {isPowerWire && (
+          <>
+            <div className="field">
+              <label>Wire Gauge (AWG)</label>
+              <select
+                value={currentGauge}
+                onChange={(e: { target: { value: string } }) =>
+                  updateConnection(selectedConnection.id, {
+                    metadata: { gauge: Number(e.target.value) },
+                  })
+                }
+              >
+                {SUPPORTED_GAUGES.map((g) => (
+                  <option key={g} value={g}>
+                    {g} AWG
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>Wire Length (inches)</label>
+              <input
+                type="number"
+                min="1"
+                value={currentLength}
+                onChange={(e: { target: { value: string } }) =>
+                  updateConnection(selectedConnection.id, {
+                    metadata: { lengthInches: Number(e.target.value) },
+                  })
+                }
+              />
+            </div>
+            {wireSim && (
+              <div className="field">
+                <label>Wire Analysis ({simulation?.mode})</label>
+                <ul className="info-list">
+                  <li>Current: {wireSim.currentAmps.toFixed(1)} A</li>
+                  <li>Ampacity: {wireSim.maxAmps} A</li>
+                  <li>Resistance: {wireSim.resistanceOhms.toFixed(4)} Ω</li>
+                  <li>Voltage drop: {wireSim.voltageDrop.toFixed(3)} V</li>
+                </ul>
+                {wireSim.exceedsAmpacity && (
+                  <div className="sim-alert sim-alert-danger">
+                    Exceeds Ampacity: Safety Hazard!
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
         <button
           type="button"
           className="btn btn-danger"

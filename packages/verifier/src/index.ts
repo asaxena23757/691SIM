@@ -74,13 +74,6 @@ function isController(node: DeviceNode): boolean {
   return node.definition.category === DeviceCategory.CONTROLLER;
 }
 
-function isCoprocessor(node: DeviceNode): boolean {
-  return (
-    node.definition.category === DeviceCategory.VISION ||
-    node.definition.metadata?.role === "coprocessor"
-  );
-}
-
 function deviceRequiresPoweredPath(node: DeviceNode): boolean {
   if (isPowerSource(node)) {
     return false;

@@ -5,6 +5,7 @@
     { "path": "packages/registry" },
     { "path": "packages/verifier" },
     { "path": "packages/estimator" },
+    { "path": "packages/simulation" },
     { "path": "packages/serialization" },
     { "path": "apps/desktop" },
     { "path": "apps/web" }

@@ -251,7 +251,7 @@
   display: none;
 }
 
-.collapsible-panel.side-right {
+.collapsible-panel.collapsible-right {
   border-right: none;
   border-left: 1px solid var(--border);
 }
@@ -644,4 +644,111 @@
   .app-body.palette-collapsed {
     grid-template-columns: 40px 1fr;
   }
+}
+
+/* ---- Simulation panel & alerts ---- */
+.sim-panel {
+  font-size: 0.85rem;
+}
+
+.sim-mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.sim-mode-toggle span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.sim-alert {
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 0.9rem;
+}
+
+.sim-alert-danger {
+  background: #611414;
+  border: 1px solid #dc2626;
+  color: #fecaca;
+}
+
+.sim-banner {
+  margin: 0.5rem 0.85rem 0;
+  text-align: center;
+}
+
+.sim-metrics {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.sim-metric {
+  flex: 1;
+  min-width: 120px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sim-metric-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sim-metric-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.sim-voltage-ok {
+  color: var(--success);
+}
+.sim-voltage-warn {
+  color: var(--warning);
+}
+.sim-voltage-danger {
+  color: var(--danger);
+}
+
+.sim-wire-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.sim-wire-table th,
+.sim-wire-table td {
+  text-align: left;
+  padding: 0.3rem 0.4rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.sim-wire-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.sim-wire-hazard td {
+  background: rgba(220, 38, 38, 0.18);
+  color: #fecaca;
+}
+
+.info-list small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.72rem;
 }
