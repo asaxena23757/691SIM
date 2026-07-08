@@ -11,8 +11,21 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,500&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="/691SIM/assets/index-DnIiUnDF.js"></script>
-    <link rel="stylesheet" crossorigin href="/691SIM/assets/index-3eduHU9K.css">
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('691sim-theme');
+          var dark =
+            stored === 'dark' ||
+            (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch (e) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/691SIM/assets/index-BWrqZIlp.js"></script>
+    <link rel="stylesheet" crossorigin href="/691SIM/assets/index-UEjX-CbD.css">
   </head>
   <body>
     <div id="root"></div>
