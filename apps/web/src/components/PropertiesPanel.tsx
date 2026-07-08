@@ -3,6 +3,13 @@ import { SUPPORTED_GAUGES, DEFAULT_WIRE_LENGTH_INCHES } from '@691sim/simulation
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { PORT_TYPE_NAMES, portTypeColor } from '../utils/labels';
 import { isPortConnected } from '../utils/visiblePorts';
+import {
+  FUSE_RATING_OPTIONS,
+  getPdhFuseInfo,
+  getFuseRatingAmps,
+  fuseExceedsRating,
+} from '../utils/fuses';
+import { resolveConnectionPortType } from '../utils/wireStyles';
 
 interface PropertiesPanelProps {
   state: RobotModelState;
@@ -23,6 +30,9 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
     setPendingPort,
     handlePortClick,
     simulation,
+    fuseViolationConnectionIds,
+    deviceTypes,
+    registry,
   } = state;
 
   const selectedConnection = model.connections.find((c) => c.id === selectedConnectionId);
@@ -32,6 +42,28 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
       (w) => w.connectionId === selectedConnection.id,
     );
     const isPowerWire = wireSim !== undefined;
+    const srcType = deviceTypes.get(selectedConnection.sourceDevice) ?? '';
+    const tgtType = deviceTypes.get(selectedConnection.targetDevice) ?? '';
+    const portType =
+      resolveConnectionPortType(
+        registry,
+        selectedConnection.sourceDevice,
+        srcType,
+        selectedConnection.sourcePort,
+      ) ?? PortType.POWER;
+    const fuseInfo = getPdhFuseInfo(
+      portType,
+      srcType,
+      selectedConnection.sourcePort,
+      tgtType,
+      selectedConnection.targetPort,
+    );
+    const fuseAmps = fuseInfo.show ? getFuseRatingAmps(selectedConnection, fuseInfo.port) : 0;
+    const fuseFault =
+      fuseInfo.show &&
+      wireSim &&
+      fuseExceedsRating(wireSim.currentAmps, fuseAmps);
+    const fuseBlown = fuseViolationConnectionIds.has(selectedConnection.id);
     const currentGauge = Number(
       selectedConnection.metadata?.gauge ?? wireSim?.gauge ?? 12,
     );
@@ -59,6 +91,36 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
             readOnly
           />
         </div>
+
+        {fuseInfo.show && (
+          <div className="field">
+            <label>PDH Fuse Rating</label>
+            <select
+              value={fuseAmps}
+              onChange={(e: { target: { value: string } }) =>
+                updateConnection(selectedConnection.id, {
+                  metadata: { fuseRatingAmps: Number(e.target.value) },
+                })
+              }
+            >
+              {FUSE_RATING_OPTIONS.map((a) => (
+                <option key={a} value={a}>
+                  {a} A
+                </option>
+              ))}
+            </select>
+            {wireSim && (
+              <div className="muted-line" style={{ marginTop: '0.35rem' }}>
+                Branch load: {wireSim.currentAmps.toFixed(1)} A
+              </div>
+            )}
+            {(fuseFault || fuseBlown) && (
+              <div className="sim-alert sim-alert-danger" style={{ marginTop: '0.5rem' }}>
+                Fuse too small — {wireSim?.currentAmps.toFixed(1)} A exceeds {fuseAmps} A rating.
+              </div>
+            )}
+          </div>
+        )}
 
         {isPowerWire && (
           <>

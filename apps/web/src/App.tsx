@@ -10,18 +10,15 @@ import { RegistryExplorer } from './components/RegistryExplorer';
 import { JsonPanel } from './components/JsonPanel';
 import { GraphPanel } from './components/GraphPanel';
 import { SimulationPanel } from './components/SimulationPanel';
-import { ConnectionsPanel } from './components/ConnectionsPanel';
 import { CollapsiblePanel } from './components/CollapsiblePanel';
 import { useRobotModel } from './hooks/useRobotModel';
 import { createHealthyModel } from './utils/labels';
-import { exportCircuitPdf } from './utils/exportPdf';
 
-type Tab = 'editor' | 'simulation' | 'registry' | 'json' | 'graph' | 'connections';
+type Tab = 'editor' | 'simulation' | 'registry' | 'json' | 'graph';
 
 const TAB_HINTS: Record<Tab, string> = {
   editor: 'Place devices, wire ports together, and verify your robot circuit.',
   simulation: 'Run the physics engine: live voltage, brownout risk, wire ampacity, and CAN topology.',
-  connections: 'View every wire connection as plain text for debugging.',
   registry: 'Browse built-in FRC device specs, ports, and requirements.',
   json: 'Import, export, or hand-edit the project JSON file.',
   graph: 'See power, CAN, network reachability, and load estimations.',
@@ -33,7 +30,6 @@ export default function App() {
   const [paletteCollapsed, setPaletteCollapsed] = useState(false);
   const [propertiesCollapsed, setPropertiesCollapsed] = useState(false);
   const [diagnosticsCollapsed, setDiagnosticsCollapsed] = useState(false);
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleOpenFile = () => fileInputRef.current?.click();
@@ -74,19 +70,6 @@ export default function App() {
     void state.runVerification();
   };
 
-  const handleExportPdf = async () => {
-    if (tab !== 'editor') setTab('editor');
-    setIsExportingPdf(true);
-    try {
-      await new Promise((r) => setTimeout(r, 100));
-      await exportCircuitPdf(state);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : String(err));
-    } finally {
-      setIsExportingPdf(false);
-    }
-  };
-
   const bodyClass = [
     'app-body',
     paletteCollapsed ? 'palette-collapsed' : '',
@@ -111,8 +94,6 @@ export default function App() {
         onSaveFile={handleSaveFile}
         onLoadSample={() => state.loadSample(createHealthyModel())}
         onVerify={handleVerify}
-        onExportPdf={() => void handleExportPdf()}
-        isExportingPdf={isExportingPdf}
       />
 
       <div className="tabs">
@@ -120,7 +101,6 @@ export default function App() {
           [
             ['editor', 'Editor'],
             ['simulation', 'Simulation'],
-            ['connections', 'Wires'],
             ['registry', 'Device Registry'],
             ['json', 'JSON'],
             ['graph', 'Graph Analysis'],
@@ -178,12 +158,6 @@ export default function App() {
       {tab === 'simulation' && (
         <div className="tab-panel">
           <SimulationPanel state={state} />
-        </div>
-      )}
-
-      {tab === 'connections' && (
-        <div className="tab-panel">
-          <ConnectionsPanel state={state} />
         </div>
       )}
 

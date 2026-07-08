@@ -1,4 +1,4 @@
-import { useCallback, useRef, type PointerEvent } from 'react';
+import { useCallback, useRef, useState, type PointerEvent } from 'react';
 import { PortType, type DeviceInstance } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { portTypeColor, PORT_TYPE_NAMES } from '../utils/labels';
@@ -9,7 +9,8 @@ import {
   offsetLineEndpoints,
 } from '../utils/wireRouting';
 import { getVisiblePorts, countHiddenPorts, isPortConnected } from '../utils/visiblePorts';
-import { getPdhFuseInfo, fuseRatingForPort } from '../utils/fuses';
+import { isCompatibleTarget } from '../utils/connectionRules';
+import { getPdhFuseInfo, getFuseRatingAmps, fuseRatingLabel } from '../utils/fuses';
 import { DeviceIcon } from './DeviceIcon';
 
 interface CanvasProps {
@@ -25,6 +26,7 @@ function WireLine({
   y2,
   color,
   width,
+  dash,
 }: {
   x1: number;
   y1: number;
@@ -32,6 +34,7 @@ function WireLine({
   y2: number;
   color: string;
   width: number;
+  dash?: string;
 }) {
   return (
     <line
@@ -42,6 +45,7 @@ function WireLine({
       stroke={color}
       strokeWidth={width}
       strokeLinecap="round"
+      strokeDasharray={dash}
     />
   );
 }
@@ -50,15 +54,31 @@ function FuseMarker({
   x,
   y,
   rating,
+  fault,
 }: {
   x: number;
   y: number;
   rating: string;
+  fault?: boolean;
 }) {
   return (
-    <g className="fuse-marker" transform={`translate(${x - 18}, ${y - 10})`}>
-      <rect width="36" height="20" rx="3" fill="#fbbf24" stroke="#92400e" strokeWidth="1" />
-      <text x="18" y="13" textAnchor="middle" fontSize="8" fontWeight="700" fill="#451a03">
+    <g className={`fuse-marker ${fault ? 'fuse-fault' : ''}`} transform={`translate(${x - 18}, ${y - 10})`}>
+      <rect
+        width="36"
+        height="20"
+        rx="3"
+        fill={fault ? '#fca5a5' : '#fbbf24'}
+        stroke={fault ? '#b91c1c' : '#92400e'}
+        strokeWidth="1"
+      />
+      <text
+        x="18"
+        y="13"
+        textAnchor="middle"
+        fontSize="8"
+        fontWeight="700"
+        fill={fault ? '#7f1d1d' : '#451a03'}
+      >
         {rating}
       </text>
     </g>
@@ -87,6 +107,7 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
     setSelectedDeviceId,
     highlightDeviceIds,
     ampacityConnectionIds,
+    fuseViolationConnectionIds,
   } = state;
 
   const getCenter = (deviceId: string) => {
@@ -97,11 +118,7 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
     };
   };
 
-  const displayConnections = getDisplayConnections(
-    model.connections,
-    registry,
-    deviceTypes,
-  );
+  const displayConnections = getDisplayConnections(model.connections, registry, deviceTypes);
   const routes = computeWireRoutes(displayConnections, getCenter);
 
   return (
@@ -132,6 +149,10 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
           tgtType,
           conn.targetPort,
         );
+        const fuseFault = fuseViolationConnectionIds.has(conn.id);
+        const fuseRating = fuseInfo.show
+          ? fuseRatingLabel(getFuseRatingAmps(conn, fuseInfo.port))
+          : '';
         const midX = (start.x + end.x) / 2;
         const midY = (start.y + end.y) / 2;
 
@@ -176,12 +197,13 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
               />
             )}
             {fuseInfo.show && (
-              <FuseMarker x={midX} y={midY} rating={fuseRatingForPort(fuseInfo.port)} />
+              <FuseMarker x={midX} y={midY} rating={fuseRating} fault={fuseFault} />
             )}
             {ampacityConnectionIds.has(conn.id) && <AmpacityHazardMarker x={midX} y={midY} />}
             <title>
               {visual.label}: {conn.sourceDevice}.{conn.sourcePort} → {conn.targetDevice}.
               {conn.targetPort}
+              {fuseFault ? ' — FUSE UNDERSIZED' : ''}
             </title>
           </g>
         );
@@ -194,6 +216,7 @@ export function Canvas({ state }: CanvasProps) {
   const {
     model,
     registry,
+    deviceTypes,
     errorDeviceIds,
     selectedDeviceId,
     setSelectedDeviceId,
@@ -201,9 +224,17 @@ export function Canvas({ state }: CanvasProps) {
     setSelectedConnectionId,
     highlightDeviceIds,
     pendingPort,
-    handlePortClick,
+    wireMessage,
+    startWireFrom,
+    tryConnect,
+    cancelWire,
     moveDevice,
   } = state;
+
+  const canvasRef = useRef<HTMLElement>(null);
+  const [dragLine, setDragLine] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(
+    null,
+  );
 
   const dragRef = useRef<{
     deviceId: string;
@@ -213,7 +244,16 @@ export function Canvas({ state }: CanvasProps) {
     origY: number;
   } | null>(null);
 
-  const onPointerDown = useCallback(
+  const canvasPoint = useCallback((clientX: number, clientY: number) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { x: clientX, y: clientY };
+    return {
+      x: clientX - rect.left + (canvasRef.current?.scrollLeft ?? 0),
+      y: clientY - rect.top + (canvasRef.current?.scrollTop ?? 0),
+    };
+  }, []);
+
+  const onDevicePointerDown = useCallback(
     (deviceId: string, e: PointerEvent) => {
       const device = model.devices.find((d: DeviceInstance) => d.id === deviceId);
       if (!device) return;
@@ -231,25 +271,64 @@ export function Canvas({ state }: CanvasProps) {
     [model.devices, setSelectedConnectionId, setSelectedDeviceId],
   );
 
+  const onPortPointerDown = useCallback(
+    (deviceId: string, portId: string, e: PointerEvent) => {
+      e.stopPropagation();
+      const target = e.currentTarget as HTMLElement;
+      target.setPointerCapture(e.pointerId);
+      const pt = canvasPoint(e.clientX, e.clientY);
+      startWireFrom(deviceId, portId);
+      setDragLine({ x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y });
+    },
+    [canvasPoint, startWireFrom],
+  );
+
+  const onPortPointerUp = useCallback(
+    (deviceId: string, portId: string, e: PointerEvent) => {
+      e.stopPropagation();
+      if (pendingPort) {
+        tryConnect(pendingPort, { deviceId, portId });
+      }
+      setDragLine(null);
+    },
+    [pendingPort, tryConnect],
+  );
+
   const onPointerMove = useCallback(
     (e: PointerEvent) => {
-      if (!dragRef.current) return;
-      const dx = e.clientX - dragRef.current.startX;
-      const dy = e.clientY - dragRef.current.startY;
-      moveDevice(dragRef.current.deviceId, {
-        x: Math.max(0, dragRef.current.origX + dx),
-        y: Math.max(0, dragRef.current.origY + dy),
-      });
+      if (dragRef.current) {
+        const dx = e.clientX - dragRef.current.startX;
+        const dy = e.clientY - dragRef.current.startY;
+        moveDevice(dragRef.current.deviceId, {
+          x: Math.max(0, dragRef.current.origX + dx),
+          y: Math.max(0, dragRef.current.origY + dy),
+        });
+        return;
+      }
+      if (pendingPort && dragLine) {
+        const pt = canvasPoint(e.clientX, e.clientY);
+        setDragLine((line) => (line ? { ...line, x2: pt.x, y2: pt.y } : null));
+      }
     },
-    [moveDevice],
+    [canvasPoint, dragLine, moveDevice, pendingPort],
   );
 
   const onPointerUp = useCallback(() => {
     dragRef.current = null;
-  }, []);
+    if (pendingPort) {
+      setDragLine(null);
+    }
+  }, [pendingPort]);
+
+  const pendingPortType = pendingPort
+    ? registry.get(deviceTypes.get(pendingPort.deviceId) ?? '')?.ports.find(
+        (p) => p.id === pendingPort.portId,
+      )?.type
+    : undefined;
 
   return (
     <main
+      ref={canvasRef}
       id="circuit-canvas"
       className="canvas"
       onPointerMove={onPointerMove}
@@ -258,11 +337,23 @@ export function Canvas({ state }: CanvasProps) {
       onClick={() => {
         setSelectedDeviceId(null);
         setSelectedConnectionId(null);
-        state.setPendingPort(null);
+        cancelWire();
+        setDragLine(null);
       }}
     >
       <svg className="canvas-svg">
         <ConnectionLines state={state} />
+        {dragLine && pendingPort && (
+          <WireLine
+            x1={dragLine.x1}
+            y1={dragLine.y1}
+            x2={dragLine.x2}
+            y2={dragLine.y2}
+            color={pendingPortType !== undefined ? portTypeColor(pendingPortType) : '#94a3b8'}
+            width={3}
+            dash="6 4"
+          />
+        )}
       </svg>
 
       {model.devices.map((device: DeviceInstance) => {
@@ -272,12 +363,8 @@ export function Canvas({ state }: CanvasProps) {
         const isSelected = device.id === selectedDeviceId;
         const isHighlighted = highlightDeviceIds.includes(device.id);
         const hasError = errorDeviceIds.has(device.id);
-        const visiblePorts = def
-          ? getVisiblePorts(device.id, def, model.connections)
-          : [];
-        const hiddenCount = def
-          ? countHiddenPorts(device.id, def, model.connections)
-          : 0;
+        const visiblePorts = def ? getVisiblePorts(device.id, def, model.connections) : [];
+        const hiddenCount = def ? countHiddenPorts(device.id, def, model.connections) : 0;
 
         return (
           <div
@@ -285,31 +372,39 @@ export function Canvas({ state }: CanvasProps) {
             className={`device-node ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''} ${hasError ? 'device-error' : ''}`}
             style={{ left: x, top: y, width: DEVICE_W }}
             onClick={(e: { stopPropagation(): void }) => e.stopPropagation()}
-            onPointerDown={(e: PointerEvent) => onPointerDown(device.id, e)}
           >
-            <div className="device-image-wrap">
-              <DeviceIcon type={device.type} size={52} />
+            <div
+              className="device-drag-handle"
+              onPointerDown={(e: PointerEvent) => onDevicePointerDown(device.id, e)}
+            >
+              <div className="device-image-wrap">
+                <DeviceIcon type={device.type} size={52} />
+              </div>
+              <div className="device-title">{device.label ?? def?.displayName ?? device.type}</div>
+              <div className="device-type">{device.type}</div>
             </div>
-            <div className="device-title">
-              {device.label ?? def?.displayName ?? device.type}
-            </div>
-            <div className="device-type">{device.type}</div>
             <div className="device-ports">
               {visiblePorts.map((port) => {
                 const connected = isPortConnected(device.id, port.id, model.connections);
                 const isPending =
                   pendingPort?.deviceId === device.id && pendingPort?.portId === port.id;
+                const compatible =
+                  pendingPort &&
+                  !isPending &&
+                  isCompatibleTarget(registry, deviceTypes, pendingPort, {
+                    deviceId: device.id,
+                    portId: port.id,
+                  });
                 return (
                   <button
                     key={port.id}
                     type="button"
-                    className={`port-btn ${isPending ? 'pending' : ''} ${connected ? 'connected' : 'disconnected'}`}
+                    className={`port-btn ${isPending ? 'pending' : ''} ${connected ? 'connected' : 'disconnected'} ${compatible ? 'compatible' : ''}`}
                     style={{ borderColor: portTypeColor(port.type) }}
-                    title={`${port.id} (${PORT_TYPE_NAMES[port.type]})`}
-                    onClick={(e: { stopPropagation(): void }) => {
-                      e.stopPropagation();
-                      handlePortClick(device.id, port.id);
-                    }}
+                    title={`${port.id} (${PORT_TYPE_NAMES[port.type]}) — drag or click to wire`}
+                    onPointerDown={(e: PointerEvent) => onPortPointerDown(device.id, port.id, e)}
+                    onPointerUp={(e: PointerEvent) => onPortPointerUp(device.id, port.id, e)}
+                    onClick={(e: { stopPropagation(): void }) => e.stopPropagation()}
                   >
                     {port.id}
                   </button>
@@ -323,13 +418,24 @@ export function Canvas({ state }: CanvasProps) {
         );
       })}
 
-      {selectedConnectionId && (
-        <div className="canvas-hint">Connection selected — delete in properties panel</div>
-      )}
-      {pendingPort && (
-        <div className="canvas-hint">
-          Click another port to connect from {pendingPort.deviceId}.{pendingPort.portId}
+      {wireMessage && (
+        <div className={`canvas-hint ${wireMessage.includes('Cannot') || wireMessage.includes('Incompatible') ? 'canvas-hint-error' : ''}`}>
+          {wireMessage}
+          {pendingPort && (
+            <button type="button" className="btn btn-inline" onClick={() => cancelWire()}>
+              Cancel
+            </button>
+          )}
         </div>
+      )}
+      {!wireMessage && pendingPort && (
+        <div className="canvas-hint">
+          Drag to a <strong>{pendingPortType !== undefined ? PORT_TYPE_NAMES[pendingPortType] : 'matching'}</strong>{' '}
+          port (highlighted green), or release on a compatible port.
+        </div>
+      )}
+      {selectedConnectionId && !pendingPort && (
+        <div className="canvas-hint">Connection selected — edit fuse/wire in properties panel</div>
       )}
       {model.devices.length === 0 && (
         <div className="canvas-empty">

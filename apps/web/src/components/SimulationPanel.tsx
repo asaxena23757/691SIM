@@ -1,4 +1,7 @@
 import type { RobotModelState } from '../hooks/useRobotModel';
+import { getFuseRatingAmps, getPdhFuseInfo } from '../utils/fuses';
+import { resolveConnectionPortType } from '../utils/wireStyles';
+import { PortType } from '@691sim/core';
 
 interface SimulationPanelProps {
   state: RobotModelState;
@@ -11,7 +14,7 @@ function voltageClass(voltage: number, threshold: number): string {
 }
 
 export function SimulationPanel({ state }: SimulationPanelProps) {
-  const { simulation, simulationMode, setSimulationMode } = state;
+  const { simulation, simulationMode, setSimulationMode, fuseViolationConnectionIds, model, deviceTypes, registry } = state;
 
   if (!simulation) {
     return (
@@ -143,6 +146,49 @@ export function SimulationPanel({ state }: SimulationPanelProps) {
         {ampacityViolations.length > 0 && (
           <div className="sim-alert sim-alert-danger" style={{ marginTop: '0.5rem' }}>
             Exceeds Ampacity: Safety Hazard!
+          </div>
+        )}
+      </div>
+
+      <div className="field">
+        <label>
+          PDH Fuse Ratings{' '}
+          {fuseViolationConnectionIds.size > 0 && (
+            <span className="badge badge-error">{fuseViolationConnectionIds.size} blown</span>
+          )}
+        </label>
+        {fuseViolationConnectionIds.size === 0 ? (
+          <div className="muted-line">All PDH branch fuses are sized correctly.</div>
+        ) : (
+          <ul className="info-list">
+            {[...fuseViolationConnectionIds].map((connectionId) => {
+              const conn = model.connections.find((c) => c.id === connectionId);
+              const wire = voltage.wireCurrents.find((w) => w.connectionId === connectionId);
+              if (!conn || !wire) return null;
+              const srcType = deviceTypes.get(conn.sourceDevice) ?? '';
+              const portType =
+                resolveConnectionPortType(registry, conn.sourceDevice, srcType, conn.sourcePort) ??
+                PortType.POWER;
+              const fuseInfo = getPdhFuseInfo(
+                portType,
+                srcType,
+                conn.sourcePort,
+                deviceTypes.get(conn.targetDevice) ?? '',
+                conn.targetPort,
+              );
+              const fuseAmps = getFuseRatingAmps(conn, fuseInfo.port);
+              return (
+                <li key={connectionId} className="sim-wire-hazard">
+                  {conn.sourceDevice}.{conn.sourcePort} → {conn.targetDevice}.{conn.targetPort}:{' '}
+                  {wire.currentAmps.toFixed(1)} A exceeds {fuseAmps} A fuse
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {fuseViolationConnectionIds.size > 0 && (
+          <div className="sim-alert sim-alert-danger" style={{ marginTop: '0.5rem' }}>
+            Fuse too small — increase the fuse rating in the Properties panel or reduce branch load.
           </div>
         )}
       </div>

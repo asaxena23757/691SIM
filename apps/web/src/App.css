@@ -514,10 +514,20 @@
   border: 2px solid var(--success);
   border-radius: 10px;
   padding: 0.45rem;
-  cursor: grab;
   user-select: none;
   z-index: 1;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.device-drag-handle {
+  cursor: grab;
+  margin: -0.45rem -0.45rem 0;
+  padding: 0.45rem 0.45rem 0;
+  border-radius: 8px 8px 0 0;
+}
+
+.device-drag-handle:active {
+  cursor: grabbing;
 }
 
 .device-node.device-error {
@@ -553,10 +563,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
-}
-
-.device-node:active {
-  cursor: grabbing;
 }
 
 .device-title {
@@ -609,6 +615,13 @@
   color: #dbeafe;
 }
 
+.port-btn.compatible {
+  background: #14532d;
+  border-color: #22c55e;
+  color: #bbf7d0;
+  box-shadow: 0 0 0 1px #22c55e;
+}
+
 .canvas-hint {
   position: fixed;
   bottom: 220px;
@@ -622,6 +635,25 @@
   color: var(--text);
   z-index: 10;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.canvas-hint:has(.btn-inline) {
+  pointer-events: auto;
+}
+
+.canvas-hint-error {
+  border-color: #dc2626;
+  background: #3f1515;
+  color: #fecaca;
+}
+
+.btn-inline {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  pointer-events: auto;
 }
 
 .canvas-empty {

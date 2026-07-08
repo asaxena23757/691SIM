@@ -7,8 +7,6 @@ interface HeaderProps {
   onSaveFile: () => void;
   onLoadSample: () => void;
   onVerify: () => void;
-  onExportPdf: () => void;
-  isExportingPdf: boolean;
 }
 
 export function Header({
@@ -17,8 +15,6 @@ export function Header({
   onSaveFile,
   onLoadSample,
   onVerify,
-  onExportPdf,
-  isExportingPdf,
 }: HeaderProps) {
   const { model, verification, isVerifying } = state;
   const errorCount = verification.diagnostics.filter((d: any) => d.severity === 2).length;
@@ -51,14 +47,6 @@ export function Header({
           disabled={isVerifying}
         >
           {isVerifying ? 'Verifying…' : 'Verify'}
-        </button>
-        <button
-          type="button"
-          className="btn"
-          onClick={onExportPdf}
-          disabled={isExportingPdf}
-        >
-          {isExportingPdf ? 'Exporting…' : 'Download PDF'}
         </button>
       </div>
 

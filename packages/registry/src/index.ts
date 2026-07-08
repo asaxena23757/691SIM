@@ -385,8 +385,16 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
       ethernetPort("eth_3"),
       ethernetPort("eth_4"),
     ],
-    requirements: poweredDeviceRequirements(),
-    metadata: { role: "network-switch" },
+    requirements: [
+      ...poweredDeviceRequirements()!,
+      { portType: PortType.ETHERNET, minConnections: 1 },
+    ],
+    metadata: {
+      role: 'network-switch',
+      nominalCurrentAmps: 0.5,
+      peakCurrentAmps: 0.7,
+      weightLbs: 0.4,
+    },
   },
 ];
 
