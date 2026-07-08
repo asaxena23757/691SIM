@@ -1,6 +1,7 @@
 import { Severity, type Diagnostic } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { SEVERITY_NAMES } from '../utils/labels';
+import { LoadingPulse, LoadingSkeleton } from './LoadingSkeleton';
 
 interface DiagnosticsPanelProps {
   state: RobotModelState;
@@ -53,13 +54,19 @@ export function DiagnosticsPanel({ state, collapsed, onToggle }: DiagnosticsPane
       {!collapsed && (
         <>
           {isVerifying && (
-            <div className="verify-progress-wrap">
-              <div className="verify-progress-bar" style={{ width: `${verifyProgress}%` }} />
-            </div>
+            <>
+              <div className="verify-progress-wrap">
+                <div className="verify-progress-bar" style={{ width: `${verifyProgress}%` }} />
+              </div>
+              <div className="diagnostics-loading">
+                <LoadingPulse label="Running verification checks…" />
+                <LoadingSkeleton lines={4} />
+              </div>
+            </>
           )}
 
           <div className="panel-content diagnostics-content">
-            {!isVerifying && diagnostics.length === 0 ? (
+            {isVerifying ? null : diagnostics.length === 0 ? (
               <div className="empty-state diagnostics-empty">
                 Click Verify to run checks on your robot wiring.
               </div>

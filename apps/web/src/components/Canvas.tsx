@@ -18,6 +18,7 @@ interface CanvasProps {
 }
 
 const DEVICE_W = 168;
+const WIRE_DRAG_THRESHOLD_PX = 4;
 
 function WireLine({
   x1,
@@ -66,9 +67,9 @@ function FuseMarker({
       <rect
         width="36"
         height="20"
-        rx="3"
-        fill={fault ? '#fca5a5' : '#fbbf24'}
-        stroke={fault ? '#b91c1c' : '#92400e'}
+        rx="6"
+        fill={fault ? '#f5c4c8' : '#f1bf98'}
+        stroke={fault ? '#cc2936' : '#08415c'}
         strokeWidth="1"
       />
       <text
@@ -77,7 +78,7 @@ function FuseMarker({
         textAnchor="middle"
         fontSize="8"
         fontWeight="700"
-        fill={fault ? '#7f1d1d' : '#451a03'}
+        fill={fault ? '#cc2936' : '#08415c'}
       >
         {rating}
       </text>
@@ -89,7 +90,7 @@ function AmpacityHazardMarker({ x, y }: { x: number; y: number }) {
   return (
     <g className="ampacity-marker" transform={`translate(${x}, ${y + 14})`}>
       <title>Exceeds Ampacity: Safety Hazard!</title>
-      <path d="M0,-9 L9,7 L-9,7 Z" fill="#dc2626" stroke="#7f1d1d" strokeWidth="1" />
+      <path d="M0,-9 L9,7 L-9,7 Z" fill="#cc2936" stroke="#08415c" strokeWidth="1" />
       <text x="0" y="6" textAnchor="middle" fontSize="10" fontWeight="800" fill="#fff">
         !
       </text>
@@ -140,7 +141,7 @@ function ConnectionLines({ state }: { state: RobotModelState }) {
         const isHighlighted =
           highlightDeviceIds.includes(conn.sourceDevice) ||
           highlightDeviceIds.includes(conn.targetDevice);
-        const opacity = isSelected || isHighlighted ? 1 : 0.9;
+        const opacity = isSelected || isHighlighted ? 1 : 0.92;
         const offset = visual.kind === 'pair' ? 4 : 0;
         const fuseInfo = getPdhFuseInfo(
           portType,
@@ -228,6 +229,7 @@ export function Canvas({ state }: CanvasProps) {
     startWireFrom,
     tryConnect,
     cancelWire,
+    handlePortClick,
     moveDevice,
   } = state;
 
@@ -244,6 +246,10 @@ export function Canvas({ state }: CanvasProps) {
     origY: number;
   } | null>(null);
 
+  const wireFromRef = useRef<{ deviceId: string; portId: string } | null>(null);
+  const wireDragActiveRef = useRef(false);
+  const wireDragStartRef = useRef<{ x: number; y: number } | null>(null);
+
   const canvasPoint = useCallback((clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return { x: clientX, y: clientY };
@@ -252,6 +258,28 @@ export function Canvas({ state }: CanvasProps) {
       y: clientY - rect.top + (canvasRef.current?.scrollTop ?? 0),
     };
   }, []);
+
+  const findPortAt = useCallback((clientX: number, clientY: number) => {
+    const el = document.elementFromPoint(clientX, clientY);
+    const portBtn = el?.closest<HTMLElement>('[data-device-id][data-port-id]');
+    if (!portBtn?.dataset.deviceId || !portBtn.dataset.portId) return null;
+    return { deviceId: portBtn.dataset.deviceId, portId: portBtn.dataset.portId };
+  }, []);
+
+  const finishWireDrag = useCallback(
+    (clientX: number, clientY: number) => {
+      const from = wireFromRef.current;
+      if (!from || !wireDragActiveRef.current) return;
+
+      const target = findPortAt(clientX, clientY);
+      if (target && (target.deviceId !== from.deviceId || target.portId !== from.portId)) {
+        tryConnect(from, target);
+      } else if (!target) {
+        cancelWire();
+      }
+    },
+    [cancelWire, findPortAt, tryConnect],
+  );
 
   const onDevicePointerDown = useCallback(
     (deviceId: string, e: PointerEvent) => {
@@ -274,24 +302,22 @@ export function Canvas({ state }: CanvasProps) {
   const onPortPointerDown = useCallback(
     (deviceId: string, portId: string, e: PointerEvent) => {
       e.stopPropagation();
-      const target = e.currentTarget as HTMLElement;
-      target.setPointerCapture(e.pointerId);
       const pt = canvasPoint(e.clientX, e.clientY);
-      startWireFrom(deviceId, portId);
+      wireFromRef.current = { deviceId, portId };
+      wireDragActiveRef.current = false;
+      wireDragStartRef.current = { x: e.clientX, y: e.clientY };
       setDragLine({ x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y });
     },
-    [canvasPoint, startWireFrom],
+    [canvasPoint],
   );
 
-  const onPortPointerUp = useCallback(
-    (deviceId: string, portId: string, e: PointerEvent) => {
+  const onPortClick = useCallback(
+    (deviceId: string, portId: string, e: { stopPropagation(): void }) => {
       e.stopPropagation();
-      if (pendingPort) {
-        tryConnect(pendingPort, { deviceId, portId });
-      }
-      setDragLine(null);
+      if (wireDragActiveRef.current) return;
+      handlePortClick(deviceId, portId);
     },
-    [pendingPort, tryConnect],
+    [handlePortClick],
   );
 
   const onPointerMove = useCallback(
@@ -305,26 +331,55 @@ export function Canvas({ state }: CanvasProps) {
         });
         return;
       }
-      if (pendingPort && dragLine) {
+
+      if (wireFromRef.current && dragLine && wireDragStartRef.current) {
+        const dx = e.clientX - wireDragStartRef.current.x;
+        const dy = e.clientY - wireDragStartRef.current.y;
+        if (
+          !wireDragActiveRef.current &&
+          dx * dx + dy * dy > WIRE_DRAG_THRESHOLD_PX * WIRE_DRAG_THRESHOLD_PX
+        ) {
+          wireDragActiveRef.current = true;
+          startWireFrom(wireFromRef.current.deviceId, wireFromRef.current.portId);
+        }
         const pt = canvasPoint(e.clientX, e.clientY);
         setDragLine((line) => (line ? { ...line, x2: pt.x, y2: pt.y } : null));
       }
     },
-    [canvasPoint, dragLine, moveDevice, pendingPort],
+    [canvasPoint, dragLine, moveDevice, startWireFrom],
   );
 
-  const onPointerUp = useCallback(() => {
-    dragRef.current = null;
-    if (pendingPort) {
-      setDragLine(null);
-    }
-  }, [pendingPort]);
+  const onPointerUp = useCallback(
+    (e: PointerEvent) => {
+      dragRef.current = null;
+
+      if (wireFromRef.current) {
+        if (wireDragActiveRef.current) {
+          finishWireDrag(e.clientX, e.clientY);
+        }
+        wireFromRef.current = null;
+        wireDragActiveRef.current = false;
+        wireDragStartRef.current = null;
+        setDragLine(null);
+        return;
+      }
+
+      if (pendingPort) {
+        setDragLine(null);
+      }
+    },
+    [finishWireDrag, pendingPort],
+  );
 
   const pendingPortType = pendingPort
     ? registry.get(deviceTypes.get(pendingPort.deviceId) ?? '')?.ports.find(
         (p) => p.id === pendingPort.portId,
       )?.type
-    : undefined;
+    : wireFromRef.current
+      ? registry
+          .get(deviceTypes.get(wireFromRef.current.deviceId) ?? '')
+          ?.ports.find((p) => p.id === wireFromRef.current!.portId)?.type
+      : undefined;
 
   return (
     <main
@@ -339,23 +394,10 @@ export function Canvas({ state }: CanvasProps) {
         setSelectedConnectionId(null);
         cancelWire();
         setDragLine(null);
+        wireFromRef.current = null;
+        wireDragActiveRef.current = false;
       }}
     >
-      <svg className="canvas-svg">
-        <ConnectionLines state={state} />
-        {dragLine && pendingPort && (
-          <WireLine
-            x1={dragLine.x1}
-            y1={dragLine.y1}
-            x2={dragLine.x2}
-            y2={dragLine.y2}
-            color={pendingPortType !== undefined ? portTypeColor(pendingPortType) : '#94a3b8'}
-            width={3}
-            dash="6 4"
-          />
-        )}
-      </svg>
-
       {model.devices.map((device: DeviceInstance) => {
         const def = registry.get(device.type);
         const x = device.position?.x ?? 0;
@@ -399,12 +441,13 @@ export function Canvas({ state }: CanvasProps) {
                   <button
                     key={port.id}
                     type="button"
+                    data-device-id={device.id}
+                    data-port-id={port.id}
                     className={`port-btn ${isPending ? 'pending' : ''} ${connected ? 'connected' : 'disconnected'} ${compatible ? 'compatible' : ''}`}
                     style={{ borderColor: portTypeColor(port.type) }}
                     title={`${port.id} (${PORT_TYPE_NAMES[port.type]}) — drag or click to wire`}
                     onPointerDown={(e: PointerEvent) => onPortPointerDown(device.id, port.id, e)}
-                    onPointerUp={(e: PointerEvent) => onPortPointerUp(device.id, port.id, e)}
-                    onClick={(e: { stopPropagation(): void }) => e.stopPropagation()}
+                    onClick={(e: { stopPropagation(): void }) => onPortClick(device.id, port.id, e)}
                   >
                     {port.id}
                   </button>
@@ -418,8 +461,25 @@ export function Canvas({ state }: CanvasProps) {
         );
       })}
 
+      <svg className="canvas-svg canvas-wires" aria-hidden="true">
+        <ConnectionLines state={state} />
+        {dragLine && (
+          <WireLine
+            x1={dragLine.x1}
+            y1={dragLine.y1}
+            x2={dragLine.x2}
+            y2={dragLine.y2}
+            color={pendingPortType !== undefined ? portTypeColor(pendingPortType) : '#6b818c'}
+            width={3}
+            dash="6 4"
+          />
+        )}
+      </svg>
+
       {wireMessage && (
-        <div className={`canvas-hint ${wireMessage.includes('Cannot') || wireMessage.includes('Incompatible') ? 'canvas-hint-error' : ''}`}>
+        <div
+          className={`canvas-hint ${wireMessage.includes('Cannot') || wireMessage.includes('Incompatible') ? 'canvas-hint-error' : ''}`}
+        >
           {wireMessage}
           {pendingPort && (
             <button type="button" className="btn btn-inline" onClick={() => cancelWire()}>
@@ -430,8 +490,9 @@ export function Canvas({ state }: CanvasProps) {
       )}
       {!wireMessage && pendingPort && (
         <div className="canvas-hint">
-          Drag to a <strong>{pendingPortType !== undefined ? PORT_TYPE_NAMES[pendingPortType] : 'matching'}</strong>{' '}
-          port (highlighted green), or release on a compatible port.
+          Drag to a{' '}
+          <strong>{pendingPortType !== undefined ? PORT_TYPE_NAMES[pendingPortType] : 'matching'}</strong>{' '}
+          port (highlighted), or click another port to finish.
         </div>
       )}
       {selectedConnectionId && !pendingPort && (

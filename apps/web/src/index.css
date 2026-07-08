@@ -1,19 +1,44 @@
 :root {
-  color-scheme: dark;
-  --bg-app: #2a2d34;
-  --bg-panel: #32363f;
-  --bg-header: #2a2d34;
-  --bg-canvas: #3e424d;
-  --bg-input: #2f323a;
-  --border: #525760;
-  --border-soft: #464a54;
-  --text: #e8eaed;
-  --text-muted: #a8adb8;
-  --accent: #6b9bd1;
-  --accent-hover: #5a8ac4;
-  --success: #4ade80;
-  --danger: #f87171;
-  --warning: #fbbf24;
+  color-scheme: light;
+
+  /* Palette */
+  --yale-blue: #08415c;
+  --tomato-jam: #cc2936;
+  --slate-grey: #6b818c;
+  --peach-glow: #f1bf98;
+  --lavender-blush: #eee5e9;
+
+  --bg-app: var(--lavender-blush);
+  --bg-panel: #ffffff;
+  --bg-header: var(--yale-blue);
+  --bg-canvas: #faf7f4;
+  --bg-input: var(--lavender-blush);
+  --border: #c5ccd2;
+  --border-soft: #d8dee3;
+  --text: var(--yale-blue);
+  --text-muted: var(--slate-grey);
+  --text-on-dark: var(--lavender-blush);
+  --accent: var(--yale-blue);
+  --accent-hover: #0a5275;
+  --success: #0d5a3a;
+  --danger: var(--tomato-jam);
+  --warning: #b45309;
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+
+  --font-serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --font-sans: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --space-3xs: 0.3rem;
+  --space-2xs: 0.48rem;
+  --space-xs: 0.6rem;
+  --space-sm: 0.78rem;
+  --space-md: 0.9rem;
+  --space-lg: 1.2rem;
+  --space-xl: 1.44rem;
 }
 
 *,
@@ -27,16 +52,21 @@ body {
   min-width: 320px;
   height: 100vh;
   overflow: hidden;
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-  line-height: 1.5;
+  font-family: var(--font-sans);
+  line-height: 1.55;
   color: var(--text);
   background: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.panel-header,
+.app-brand h1 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 button,
@@ -49,4 +79,34 @@ textarea {
 #root {
   height: 100vh;
   overflow: hidden;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

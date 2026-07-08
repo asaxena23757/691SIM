@@ -46,7 +46,14 @@ export function Header({
           onClick={onVerify}
           disabled={isVerifying}
         >
-          {isVerifying ? 'Verifying…' : 'Verify'}
+          {isVerifying ? (
+            <span className="btn-loading">
+              <span className="loading-pulse-dot" />
+              Verifying…
+            </span>
+          ) : (
+            'Verify'
+          )}
         </button>
       </div>
 
