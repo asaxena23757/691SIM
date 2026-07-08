@@ -221,6 +221,7 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
 
   const canId = selectedDevice.metadata?.canId;
   const ipAddress = selectedDevice.metadata?.ipAddress;
+  const breakerClosed = selectedDevice.metadata?.breakerClosed !== false;
 
   return (
     <div className="properties-scroll">
@@ -241,6 +242,31 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
         <label>Instance ID</label>
         <input value={selectedDevice.id} readOnly />
       </div>
+
+      {selectedDefinition.type === 'MainBreaker' && (
+        <div className="field">
+          <label>Breaker State</label>
+          <select
+            value={breakerClosed ? 'closed' : 'open'}
+            onChange={(e: { target: { value: string } }) =>
+              updateDevice(selectedDevice.id, {
+                metadata: {
+                  ...selectedDevice.metadata,
+                  breakerClosed: e.target.value === 'closed',
+                },
+              })
+            }
+          >
+            <option value="closed">Closed (conducting)</option>
+            <option value="open">Open (tripped)</option>
+          </select>
+          {!breakerClosed && (
+            <div className="sim-alert sim-alert-danger" style={{ marginTop: '0.5rem' }}>
+              Breaker is stopping current flow.
+            </div>
+          )}
+        </div>
+      )}
 
       {selectedDefinition.ports.some((p: Port) => p.type === PortType.CAN) && (
         <div className="field">

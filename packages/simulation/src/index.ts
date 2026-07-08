@@ -5,7 +5,7 @@ import {
   type RobotModel,
 } from '@691sim/core';
 import { createDefaultDeviceRegistry, type DeviceRegistry } from '@691sim/registry';
-import { type CircuitComponent, createComponent, type LoadMode } from './components.js';
+import { type CircuitComponent, createComponent, type LoadMode, Breaker } from './components.js';
 import { type AwgGauge, wireFromConnection } from './wire.js';
 import {
   BROWNOUT_MESSAGE,
@@ -46,7 +46,8 @@ function resolvePortType(
 
 /** Sensible default AWG for a wire based on what it powers. */
 function defaultGaugeFor(sourceType: string, sourcePort: string): AwgGauge {
-  if (sourceType === 'Battery') return 6; // main battery leads
+  if (sourceType === 'Battery') return 6; // main battery leads (120A FRC breaker)
+  if (sourceType === 'MainBreaker' && sourcePort === 'power_out') return 6;
   if (sourcePort === 'vrm_out') return 10;
   const channel = /^channel_(\d+)$/.exec(sourcePort);
   if (channel) {
@@ -72,8 +73,22 @@ function buildDiagnostics(
   voltage: VoltageSimResult,
   can: CanTopologyResult,
   ampacityViolations: WireCurrentResult[],
+  components: Map<string, CircuitComponent>,
 ): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
+
+  for (const component of components.values()) {
+    if (component instanceof Breaker && component.blocksDownstreamPower()) {
+      diagnostics.push(
+        diag(
+          'BREAKER_OPEN',
+          Severity.ERROR,
+          'Breaker is stopping current flow.',
+          { deviceIds: [component.id] },
+        ),
+      );
+    }
+  }
 
   if (voltage.brownoutRisk) {
     diagnostics.push(
@@ -149,7 +164,7 @@ export function simulateCircuit(
   const voltage = simulateVoltage(components, powerEdges, mode);
   const can = verifyCanTopology(components, canEdges);
   const ampacityViolations = voltage.wireCurrents.filter((wire) => wire.exceedsAmpacity);
-  const diagnostics = buildDiagnostics(voltage, can, ampacityViolations);
+  const diagnostics = buildDiagnostics(voltage, can, ampacityViolations, components);
 
   return { mode, voltage, can, ampacityViolations, diagnostics };
 }

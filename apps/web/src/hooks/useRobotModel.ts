@@ -101,8 +101,14 @@ export function useRobotModel(initial: RobotModel) {
         diag.deviceIds?.forEach((id) => ids.add(id));
       }
     }
+
+    for (const diag of simulation?.diagnostics ?? []) {
+      if (diag.severity === 2) {
+        diag.deviceIds?.forEach((id) => ids.add(id));
+      }
+    }
     return ids;
-  }, [graph, verification.diagnostics]);
+  }, [graph, verification.diagnostics, simulation?.diagnostics]);
 
   const selectedDevice = useMemo(
     () => model.devices.find((d: any) => d.id === selectedDeviceId) ?? null,

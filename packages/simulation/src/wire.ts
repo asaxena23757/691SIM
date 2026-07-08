@@ -19,7 +19,7 @@ export interface AwgSpec {
  * conservative continuous-current ratings appropriate for FRC chassis wiring.
  */
 export const AWG_TABLE: Record<AwgGauge, AwgSpec> = {
-  6: { gauge: 6, ohmsPerFoot: 0.0003951, maxAmps: 100, label: '6 AWG' },
+  6: { gauge: 6, ohmsPerFoot: 0.0003951, maxAmps: 120, label: '6 AWG' },
   10: { gauge: 10, ohmsPerFoot: 0.0009989, maxAmps: 55, label: '10 AWG' },
   12: { gauge: 12, ohmsPerFoot: 0.001588, maxAmps: 41, label: '12 AWG' },
   14: { gauge: 14, ohmsPerFoot: 0.002525, maxAmps: 32, label: '14 AWG' },

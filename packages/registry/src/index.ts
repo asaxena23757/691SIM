@@ -118,6 +118,21 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
     },
   },
   {
+    type: "MainBreaker",
+    displayName: "120A Main Breaker",
+    category: DeviceCategory.POWER,
+    ports: [
+      port("power_in", PortType.POWER, PortDirection.INPUT, true, 1),
+      powerOutput("power_out", 1),
+      port("ground_in", PortType.GROUND, PortDirection.INPUT, true, 1),
+      groundOutput("ground_out", 1),
+    ],
+    metadata: {
+      role: "main-breaker",
+      ratingAmps: 120,
+    },
+  },
+  {
     type: "PDP",
     displayName: "Power Distribution Panel",
     category: DeviceCategory.POWER,

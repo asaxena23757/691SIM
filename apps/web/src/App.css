@@ -338,8 +338,11 @@
   display: flex;
   gap: 0;
   border-bottom: 1px solid var(--border-soft);
-  background: var(--bg-panel);
+  background: var(--bg-subbar);
   padding: 0 var(--space-xs);
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease;
 }
 
 .tab {
@@ -652,11 +655,15 @@
   flex-wrap: wrap;
   gap: var(--space-sm) var(--space-lg);
   padding: var(--space-2xs) var(--space-md);
-  background: var(--lavender-blush);
+  background: var(--bg-subbar);
   border-bottom: 1px solid var(--border-soft);
   font-size: 0.74rem;
   color: var(--text-muted);
   flex-shrink: 0;
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease;
 }
 
 .wire-legend-item {

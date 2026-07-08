@@ -74,6 +74,16 @@ describe('simulateCircuit voltage/brownout', () => {
     expect(result.ampacityViolations.length).toBeGreaterThan(0);
     expect(result.diagnostics.some((d) => d.code === 'WIRE_AMPACITY_EXCEEDED')).toBe(true);
   });
+
+  it('reports when the main breaker is open', () => {
+    const model = createHealthyRobotModel();
+    const breaker = model.devices.find((d) => d.id === 'breaker-1')!;
+    breaker.metadata = { ...breaker.metadata, breakerClosed: false };
+
+    const result = simulateCircuit(model, { mode: 'peak' });
+    expect(result.diagnostics.some((d) => d.code === 'BREAKER_OPEN')).toBe(true);
+    expect(result.voltage.totalCurrentAmps).toBe(0);
+  });
 });
 
 describe('verifyCanTopology', () => {

@@ -68,6 +68,8 @@
   --space-md: 0.9rem;
   --space-lg: 1.2rem;
   --space-xl: 1.44rem;
+
+  --bg-subbar: var(--lavender-blush);
 }
 
 [data-theme='dark'] {
@@ -116,6 +118,8 @@
   --skeleton-mid: #0e4a66;
   --btn-primary-hover: #f5cdb0;
   --btn-danger-hover: #5c2830;
+
+  --bg-subbar: #0c3f58;
 }
 
 *,

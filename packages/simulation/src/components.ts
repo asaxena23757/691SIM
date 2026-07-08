@@ -130,6 +130,24 @@ export class GenericLoad extends CircuitComponent {
   readonly category = 'load';
 }
 
+export class Breaker extends CircuitComponent {
+  readonly category = 'breaker';
+  readonly isClosed: boolean;
+
+  constructor(init: ComponentInit, isClosed = true) {
+    super(init);
+    this.isClosed = isClosed;
+  }
+
+  blocksDownstreamPower(): boolean {
+    return !this.isClosed;
+  }
+
+  override currentDraw(): number {
+    return 0;
+  }
+}
+
 function num(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
@@ -198,6 +216,10 @@ export function createComponent(
       return new PowerDistribution(init);
     case 'VRM':
       return new VoltageRegulator(init);
+    case 'MainBreaker': {
+      const closed = instance.metadata?.breakerClosed !== false;
+      return new Breaker(init, closed);
+    }
     case 'SparkMax':
     case 'SparkFlex':
     case 'TalonFX':

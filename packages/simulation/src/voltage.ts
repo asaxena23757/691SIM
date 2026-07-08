@@ -1,4 +1,4 @@
-import { Battery, type CircuitComponent, type LoadMode } from './components.js';
+import { Battery, Breaker, type CircuitComponent, type LoadMode } from './components.js';
 import type { SimWire } from './wire.js';
 
 /** RoboRIO brownout protection begins around 6.3V. */
@@ -71,6 +71,14 @@ export function simulateVoltage(
 
     stack.add(deviceId);
     let total = components.get(deviceId)?.currentDraw(mode) ?? 0;
+
+    const component = components.get(deviceId);
+    if (component instanceof Breaker && component.blocksDownstreamPower()) {
+      stack.delete(deviceId);
+      memo.set(deviceId, total);
+      return total;
+    }
+
     for (const edge of children.get(deviceId) ?? []) {
       total += downstreamCurrent(edge.to, stack);
     }

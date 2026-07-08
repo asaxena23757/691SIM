@@ -24,7 +24,8 @@ export function SimulationPanel({ state }: SimulationPanelProps) {
     );
   }
 
-  const { voltage, can, ampacityViolations } = simulation;
+  const { voltage, can, ampacityViolations, diagnostics } = simulation;
+  const breakerOpen = diagnostics.filter((d) => d.code === 'BREAKER_OPEN');
 
   return (
     <div className="panel-content sim-panel">
@@ -48,6 +49,12 @@ export function SimulationPanel({ state }: SimulationPanelProps) {
 
       {voltage.brownoutRisk && (
         <div className="sim-alert sim-alert-danger">⚠ ROBORIO BROWNOUT RISK DETECTED</div>
+      )}
+
+      {breakerOpen.length > 0 && (
+        <div className="sim-alert sim-alert-danger">
+          Breaker is stopping current flow on {breakerOpen.map((d) => d.deviceIds?.[0]).filter(Boolean).join(', ')}.
+        </div>
       )}
 
       <div className="sim-metrics">
