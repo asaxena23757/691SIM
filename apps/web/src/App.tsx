@@ -12,6 +12,7 @@ import { GraphPanel } from './components/GraphPanel';
 import { SimulationPanel } from './components/SimulationPanel';
 import { CollapsiblePanel } from './components/CollapsiblePanel';
 import { useRobotModel } from './hooks/useRobotModel';
+import { useTheme } from './hooks/useTheme';
 import { createHealthyModel } from './utils/labels';
 
 type Tab = 'editor' | 'simulation' | 'registry' | 'json' | 'graph';
@@ -26,6 +27,7 @@ const TAB_HINTS: Record<Tab, string> = {
 
 export default function App() {
   const state = useRobotModel(createHealthyModel());
+  const { theme, toggleTheme } = useTheme();
   const [tab, setTab] = useState<Tab>('editor');
   const [paletteCollapsed, setPaletteCollapsed] = useState(false);
   const [propertiesCollapsed, setPropertiesCollapsed] = useState(false);
@@ -90,6 +92,8 @@ export default function App() {
 
       <Header
         state={state}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onOpenFile={handleOpenFile}
         onSaveFile={handleSaveFile}
         onLoadSample={() => state.loadSample(createHealthyModel())}

@@ -1,8 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { RobotModelState } from '../hooks/useRobotModel';
+import type { Theme } from '../hooks/useTheme';
 
 interface HeaderProps {
   state: RobotModelState;
+  theme: Theme;
+  onToggleTheme: () => void;
   onOpenFile: () => void;
   onSaveFile: () => void;
   onLoadSample: () => void;
@@ -11,6 +14,8 @@ interface HeaderProps {
 
 export function Header({
   state,
+  theme,
+  onToggleTheme,
   onOpenFile,
   onSaveFile,
   onLoadSample,
@@ -28,6 +33,15 @@ export function Header({
       </div>
 
       <div className="toolbar">
+        <button
+          type="button"
+          className="btn btn-theme"
+          onClick={onToggleTheme}
+          title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+        >
+          {theme === 'light' ? '☾ Dark' : '☀ Light'}
+        </button>
         <button type="button" className="btn" onClick={() => state.newProject()}>
           New
         </button>

@@ -68,8 +68,9 @@ function FuseMarker({
         width="36"
         height="20"
         rx="6"
-        fill={fault ? '#f5c4c8' : '#f1bf98'}
-        stroke={fault ? '#cc2936' : '#08415c'}
+        className="fuse-marker-rect"
+        fill={fault ? 'var(--fuse-fault-fill)' : 'var(--fuse-fill)'}
+        stroke={fault ? 'var(--fuse-fault-stroke)' : 'var(--fuse-stroke)'}
         strokeWidth="1"
       />
       <text
@@ -78,7 +79,7 @@ function FuseMarker({
         textAnchor="middle"
         fontSize="8"
         fontWeight="700"
-        fill={fault ? '#cc2936' : '#08415c'}
+        fill={fault ? 'var(--fuse-fault-text)' : 'var(--fuse-stroke)'}
       >
         {rating}
       </text>
@@ -381,11 +382,13 @@ export function Canvas({ state }: CanvasProps) {
           ?.ports.find((p) => p.id === wireFromRef.current!.portId)?.type
       : undefined;
 
+  const isWiring = pendingPort !== null || dragLine !== null;
+
   return (
     <main
       ref={canvasRef}
       id="circuit-canvas"
-      className="canvas"
+      className={`canvas ${isWiring ? 'canvas-wiring' : ''}`}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
@@ -398,6 +401,21 @@ export function Canvas({ state }: CanvasProps) {
         wireDragActiveRef.current = false;
       }}
     >
+      <svg className="canvas-svg canvas-wires" aria-hidden="true">
+        <ConnectionLines state={state} />
+        {dragLine && (
+          <WireLine
+            x1={dragLine.x1}
+            y1={dragLine.y1}
+            x2={dragLine.x2}
+            y2={dragLine.y2}
+            color={pendingPortType !== undefined ? portTypeColor(pendingPortType) : '#6b818c'}
+            width={3}
+            dash="6 4"
+          />
+        )}
+      </svg>
+
       {model.devices.map((device: DeviceInstance) => {
         const def = registry.get(device.type);
         const x = device.position?.x ?? 0;
@@ -460,21 +478,6 @@ export function Canvas({ state }: CanvasProps) {
           </div>
         );
       })}
-
-      <svg className="canvas-svg canvas-wires" aria-hidden="true">
-        <ConnectionLines state={state} />
-        {dragLine && (
-          <WireLine
-            x1={dragLine.x1}
-            y1={dragLine.y1}
-            x2={dragLine.x2}
-            y2={dragLine.y2}
-            color={pendingPortType !== undefined ? portTypeColor(pendingPortType) : '#6b818c'}
-            width={3}
-            dash="6 4"
-          />
-        )}
-      </svg>
 
       {wireMessage && (
         <div
