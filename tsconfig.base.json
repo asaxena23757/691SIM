@@ -23,6 +23,7 @@
       "@691sim/registry": ["packages/registry/src/index.ts"],
       "@691sim/verifier": ["packages/verifier/src/index.ts"],
       "@691sim/estimator": ["packages/estimator/src/index.ts"],
+      "@691sim/simulation": ["packages/simulation/src/index.ts"],
       "@691sim/serialization": ["packages/serialization/src/index.ts"],
       "zod": ["packages/serialization/src/zod-shim.d.ts"],
       "react": ["apps/web/src/react-shim.d.ts"],

@@ -39,36 +39,36 @@ export const SEVERITY_NAMES: Record<Severity, string> = {
 export function portTypeColor(type: PortType): string {
   switch (type) {
     case PortType.POWER:
-      return '#ef4444';
+      return '#cc2936';
     case PortType.GROUND:
-      return '#111827';
+      return '#08415c';
     case PortType.CAN:
-      return '#22c55e';
+      return '#0d5a3a';
     case PortType.ETHERNET:
-      return '#2563eb';
+      return '#08415c';
     case PortType.PWM:
-      return '#f8fafc';
+      return '#6b818c';
     case PortType.DIO:
-      return '#ec4899';
+      return '#b45309';
     default:
-      return '#94a3b8';
+      return '#6b818c';
   }
 }
 
 export function categoryColor(category: DeviceCategory): string {
   switch (category) {
     case DeviceCategory.POWER:
-      return '#f59e0b';
+      return '#f1bf98';
     case DeviceCategory.CONTROLLER:
-      return '#6366f1';
+      return '#08415c';
     case DeviceCategory.MOTOR_CONTROLLER:
-      return '#ef4444';
+      return '#cc2936';
     case DeviceCategory.SENSOR:
-      return '#22c55e';
+      return '#0d5a3a';
     case DeviceCategory.VISION:
-      return '#06b6d4';
+      return '#6b818c';
     case DeviceCategory.NETWORK:
-      return '#3b82f6';
+      return '#08415c';
     default:
       return '#94a3b8';
   }

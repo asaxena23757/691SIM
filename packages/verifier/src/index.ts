@@ -70,15 +70,33 @@ function isGroundSource(node: DeviceNode): boolean {
   );
 }
 
-function isController(node: DeviceNode): boolean {
-  return node.definition.category === DeviceCategory.CONTROLLER;
+function isMainBreakerOpen(device: DeviceNode): boolean {
+  return (
+    device.definition.type === "MainBreaker" &&
+    device.instance.metadata?.breakerClosed === false
+  );
 }
 
-function isCoprocessor(node: DeviceNode): boolean {
-  return (
-    node.definition.category === DeviceCategory.VISION ||
-    node.definition.metadata?.role === "coprocessor"
-  );
+function blocksPowerTraversal(
+  device: DeviceNode,
+  edge: GraphEdge,
+  portType?: PortType,
+): boolean {
+  if (portType !== PortType.POWER && portType !== undefined) {
+    return false;
+  }
+  if (!isMainBreakerOpen(device)) {
+    return false;
+  }
+  const atSource =
+    edge.source.deviceId === device.id && edge.source.port.id === "power_out";
+  const atTarget =
+    edge.target.deviceId === device.id && edge.target.port.id === "power_out";
+  return atSource || atTarget;
+}
+
+function isController(node: DeviceNode): boolean {
+  return node.definition.category === DeviceCategory.CONTROLLER;
 }
 
 function deviceRequiresPoweredPath(node: DeviceNode): boolean {
@@ -209,6 +227,10 @@ export class RobotGraph {
           continue;
         }
 
+        if (blocksPowerTraversal(device, edge, portType)) {
+          continue;
+        }
+
         const nextDeviceId =
           edge.source.deviceId === deviceId
             ? edge.target.deviceId
@@ -242,9 +264,15 @@ export class RobotGraph {
       }
 
       visited.add(currentDeviceId);
+      const currentDevice = this.getDevice(currentDeviceId);
+      if (!currentDevice) continue;
 
       for (const edge of this.getDeviceEdges(currentDeviceId)) {
         if (portType !== undefined && !edgeUsesPortType(edge, portType)) {
+          continue;
+        }
+
+        if (blocksPowerTraversal(currentDevice, edge, portType)) {
           continue;
         }
 
@@ -663,6 +691,19 @@ export const powerVerificationPass: VerificationPass = {
           "Robot model does not include a battery or equivalent power source.",
         ),
       );
+    }
+
+    for (const device of graph.devices) {
+      if (isMainBreakerOpen(device)) {
+        diagnostics.push(
+          diagnostic(
+            "BREAKER_OPEN",
+            Severity.ERROR,
+            "Breaker is stopping current flow.",
+            { deviceIds: [device.id] },
+          ),
+        );
+      }
     }
 
     for (const device of graph.devices) {

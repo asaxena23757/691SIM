@@ -18,7 +18,7 @@ describe("buildGraph", () => {
 
     expect(graph.getDevice("rio-1")?.definition.type).toBe("RoboRIO");
     expect(graph.getPort("spark-1", "can_bus")?.deviceId).toBe("spark-1");
-    expect(graph.edges).toHaveLength(19);
+    expect(graph.edges).toHaveLength(21);
   });
 
   it("traverses and finds shortest paths by connection type", () => {
@@ -31,7 +31,7 @@ describe("buildGraph", () => {
 
     expect(
       graph.shortestPath("battery-1", "spark-1")?.map((device) => device.id),
-    ).toEqual(["battery-1", "pdh-1", "spark-1"]);
+    ).toEqual(["battery-1", "breaker-1", "pdh-1", "spark-1"]);
   });
 
   it("returns connected components for a selected port type", () => {
@@ -182,5 +182,20 @@ describe("verifyRobotModel", () => {
     expect(unpowered).toContain("radio-1");
     expect(unpowered).toContain("pdh-1");
     expect(codes).toContain("POWER_NOT_REACHABLE");
+  });
+
+  it("flags an open main breaker and marks downstream devices unpowered", () => {
+    const model = healthyModel();
+    const breaker = model.devices.find((d) => d.id === "breaker-1")!;
+    breaker.metadata = { ...breaker.metadata, breakerClosed: false };
+
+    const graph = buildGraph(model);
+    const unpowered = getUnpoweredDeviceIds(graph);
+    const codes = verifyRobotModel(model).diagnostics.map((d) => d.code);
+
+    expect(codes).toContain("BREAKER_OPEN");
+    expect(unpowered).toContain("pdh-1");
+    expect(unpowered).toContain("rio-1");
+    expect(graph.powerReachable("pdh-1")).toBe(false);
   });
 });

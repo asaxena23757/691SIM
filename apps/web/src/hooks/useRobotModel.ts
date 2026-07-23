@@ -1,15 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useMemo, useState } from 'react';
 import type { Connection, DeviceInstance, Diagnostic, RobotModel } from '@691sim/core';
+import { PortType } from '@691sim/core';
 import { createDefaultDeviceRegistry } from '@691sim/registry';
 import { verifyRobotModel, buildGraph, getUnpoweredDeviceIds } from '@691sim/verifier';
+import { simulateCircuit, type LoadMode } from '@691sim/simulation';
 import { exportProject, importProject, validateProject } from '@691sim/serialization';
 import { createEmptyModel, nextConnectionId, nextDeviceId } from '../utils/labels';
-import {
-  createPairedGroundConnection,
-  groundConnectionIdForPower,
-  isPowerConnection,
-} from '../utils/groundPairing';
+import { createPairedGroundConnection, groundConnectionIdForPower, isPowerConnection } from '../utils/groundPairing';
+import { canConnectPorts } from '../utils/connectionRules';
+import { getPdhFuseInfo, getFuseRatingAmps, fuseExceedsRating } from '../utils/fuses';
+import { resolveConnectionPortType } from '../utils/wireStyles';
 
 export type SelectedPort = {
   deviceId: string;
@@ -27,6 +28,8 @@ export function useRobotModel(initial: RobotModel) {
   const [verification, setVerification] = useState(EMPTY_VERIFICATION);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyProgress, setVerifyProgress] = useState(0);
+  const [simulationMode, setSimulationMode] = useState<LoadMode>('peak');
+  const [wireMessage, setWireMessage] = useState<string | null>(null);
 
   const registry = useMemo(() => createDefaultDeviceRegistry(), []);
 
@@ -43,6 +46,47 @@ export function useRobotModel(initial: RobotModel) {
     [model.devices],
   );
 
+  const simulation = useMemo(() => {
+    try {
+      return simulateCircuit(model, { registry, mode: simulationMode });
+    } catch {
+      return null;
+    }
+  }, [model, registry, simulationMode]);
+
+  const ampacityConnectionIds = useMemo(
+    () => new Set((simulation?.ampacityViolations ?? []).map((w) => w.connectionId)),
+    [simulation],
+  );
+
+  const fuseViolationConnectionIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!simulation) return ids;
+
+    for (const wire of simulation.voltage.wireCurrents) {
+      const conn = model.connections.find((c) => c.id === wire.connectionId);
+      if (!conn) continue;
+      const srcType = deviceTypes.get(conn.sourceDevice) ?? '';
+      const tgtType = deviceTypes.get(conn.targetDevice) ?? '';
+      const portType =
+        resolveConnectionPortType(registry, conn.sourceDevice, srcType, conn.sourcePort) ??
+        PortType.POWER;
+      const fuseInfo = getPdhFuseInfo(
+        portType,
+        srcType,
+        conn.sourcePort,
+        tgtType,
+        conn.targetPort,
+      );
+      if (!fuseInfo.show) continue;
+      const fuseAmps = getFuseRatingAmps(conn, fuseInfo.port);
+      if (fuseExceedsRating(wire.currentAmps, fuseAmps)) {
+        ids.add(conn.id);
+      }
+    }
+    return ids;
+  }, [simulation, model.connections, deviceTypes, registry]);
+
   const errorDeviceIds = useMemo(() => {
     const ids = new Set<string>();
 
@@ -57,8 +101,14 @@ export function useRobotModel(initial: RobotModel) {
         diag.deviceIds?.forEach((id) => ids.add(id));
       }
     }
+
+    for (const diag of simulation?.diagnostics ?? []) {
+      if (diag.severity === 2) {
+        diag.deviceIds?.forEach((id) => ids.add(id));
+      }
+    }
     return ids;
-  }, [graph, verification.diagnostics]);
+  }, [graph, verification.diagnostics, simulation?.diagnostics]);
 
   const selectedDevice = useMemo(
     () => model.devices.find((d: any) => d.id === selectedDeviceId) ?? null,
@@ -182,16 +232,23 @@ export function useRobotModel(initial: RobotModel) {
 
   const addConnection = useCallback(
     (source: SelectedPort, target: SelectedPort) => {
+      const check = canConnectPorts(registry, deviceTypes, source, target);
+      if (!check.ok || !check.oriented) {
+        setWireMessage(check.reason ?? 'Cannot connect these ports.');
+        setPendingPort(null);
+        return;
+      }
+
       const connection: Connection = {
         id: nextConnectionId(model.connections),
-        sourceDevice: source.deviceId,
-        sourcePort: source.portId,
-        targetDevice: target.deviceId,
-        targetPort: target.portId,
+        sourceDevice: check.oriented.sourceDevice,
+        sourcePort: check.oriented.sourcePort,
+        targetDevice: check.oriented.targetDevice,
+        targetPort: check.oriented.targetPort,
       };
 
-      const sourceType = deviceTypes.get(source.deviceId) ?? '';
-      const targetType = deviceTypes.get(target.deviceId) ?? '';
+      const sourceType = deviceTypes.get(connection.sourceDevice) ?? '';
+      const targetType = deviceTypes.get(connection.targetDevice) ?? '';
       const extra: Connection[] = [];
 
       if (isPowerConnection(registry, connection, sourceType)) {
@@ -209,8 +266,43 @@ export function useRobotModel(initial: RobotModel) {
         connections: [...prev.connections, connection, ...extra],
       }));
       setPendingPort(null);
+      setWireMessage(null);
+      setSelectedConnectionId(connection.id);
     },
     [deviceTypes, model.connections, registry, updateModel],
+  );
+
+  const tryConnect = useCallback(
+    (source: SelectedPort, target: SelectedPort) => {
+      addConnection(source, target);
+    },
+    [addConnection],
+  );
+
+  const startWireFrom = useCallback((deviceId: string, portId: string) => {
+    setPendingPort({ deviceId, portId });
+    setSelectedDeviceId(deviceId);
+    setSelectedConnectionId(null);
+    setWireMessage('Drag to a matching port, or click another port to finish.');
+  }, []);
+
+  const cancelWire = useCallback(() => {
+    setPendingPort(null);
+    setWireMessage(null);
+  }, []);
+
+  const updateConnection = useCallback(
+    (connectionId: string, patch: Partial<Connection>) => {
+      updateModel((prev) => ({
+        ...prev,
+        connections: prev.connections.map((c: any) =>
+          c.id === connectionId
+            ? { ...c, ...patch, metadata: { ...c.metadata, ...patch.metadata } }
+            : c,
+        ),
+      }));
+    },
+    [updateModel],
   );
 
   const removeConnection = useCallback(
@@ -230,17 +322,16 @@ export function useRobotModel(initial: RobotModel) {
   const handlePortClick = useCallback(
     (deviceId: string, portId: string) => {
       if (!pendingPort) {
-        setPendingPort({ deviceId, portId });
-        setSelectedDeviceId(deviceId);
+        startWireFrom(deviceId, portId);
         return;
       }
       if (pendingPort.deviceId === deviceId && pendingPort.portId === portId) {
-        setPendingPort(null);
+        cancelWire();
         return;
       }
-      addConnection(pendingPort, { deviceId, portId });
+      tryConnect(pendingPort, { deviceId, portId });
     },
-    [addConnection, pendingPort],
+    [cancelWire, pendingPort, startWireFrom, tryConnect],
   );
 
   const focusDiagnostic = useCallback((deviceIds?: string[], connectionIds?: string[]) => {
@@ -262,6 +353,12 @@ export function useRobotModel(initial: RobotModel) {
     errorDeviceIds,
     deviceTypes,
     graph,
+    simulation,
+    simulationMode,
+    setSimulationMode,
+    ampacityConnectionIds,
+    fuseViolationConnectionIds,
+    wireMessage,
     selectedDeviceId,
     setSelectedDeviceId,
     selectedConnectionId,
@@ -280,8 +377,12 @@ export function useRobotModel(initial: RobotModel) {
     updateDevice,
     moveDevice,
     addConnection,
+    updateConnection,
     removeConnection,
     handlePortClick,
+    startWireFrom,
+    tryConnect,
+    cancelWire,
     focusDiagnostic,
     validateCurrent,
   };

@@ -118,6 +118,21 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
     },
   },
   {
+    type: "MainBreaker",
+    displayName: "120A Main Breaker",
+    category: DeviceCategory.POWER,
+    ports: [
+      port("power_in", PortType.POWER, PortDirection.INPUT, true, 1),
+      powerOutput("power_out", 1),
+      port("ground_in", PortType.GROUND, PortDirection.INPUT, true, 1),
+      groundOutput("ground_out", 1),
+    ],
+    metadata: {
+      role: "main-breaker",
+      ratingAmps: 120,
+    },
+  },
+  {
     type: "PDP",
     displayName: "Power Distribution Panel",
     category: DeviceCategory.POWER,
@@ -385,8 +400,16 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
       ethernetPort("eth_3"),
       ethernetPort("eth_4"),
     ],
-    requirements: poweredDeviceRequirements(),
-    metadata: { role: "network-switch" },
+    requirements: [
+      ...poweredDeviceRequirements()!,
+      { portType: PortType.ETHERNET, minConnections: 1 },
+    ],
+    metadata: {
+      role: 'network-switch',
+      nominalCurrentAmps: 0.5,
+      peakCurrentAmps: 0.7,
+      weightLbs: 0.4,
+    },
   },
 ];
 

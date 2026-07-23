@@ -9,17 +9,17 @@ import { DiagnosticsPanel } from './components/DiagnosticsPanel';
 import { RegistryExplorer } from './components/RegistryExplorer';
 import { JsonPanel } from './components/JsonPanel';
 import { GraphPanel } from './components/GraphPanel';
-import { ConnectionsPanel } from './components/ConnectionsPanel';
+import { SimulationPanel } from './components/SimulationPanel';
 import { CollapsiblePanel } from './components/CollapsiblePanel';
 import { useRobotModel } from './hooks/useRobotModel';
+import { useTheme } from './hooks/useTheme';
 import { createHealthyModel } from './utils/labels';
-import { exportCircuitPdf } from './utils/exportPdf';
 
-type Tab = 'editor' | 'registry' | 'json' | 'graph' | 'connections';
+type Tab = 'editor' | 'simulation' | 'registry' | 'json' | 'graph';
 
 const TAB_HINTS: Record<Tab, string> = {
   editor: 'Place devices, wire ports together, and verify your robot circuit.',
-  connections: 'View every wire connection as plain text for debugging.',
+  simulation: 'Run the physics engine: live voltage, brownout risk, wire ampacity, and CAN topology.',
   registry: 'Browse built-in FRC device specs, ports, and requirements.',
   json: 'Import, export, or hand-edit the project JSON file.',
   graph: 'See power, CAN, network reachability, and load estimations.',
@@ -27,11 +27,11 @@ const TAB_HINTS: Record<Tab, string> = {
 
 export default function App() {
   const state = useRobotModel(createHealthyModel());
+  const { theme, toggleTheme } = useTheme();
   const [tab, setTab] = useState<Tab>('editor');
   const [paletteCollapsed, setPaletteCollapsed] = useState(false);
   const [propertiesCollapsed, setPropertiesCollapsed] = useState(false);
   const [diagnosticsCollapsed, setDiagnosticsCollapsed] = useState(false);
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleOpenFile = () => fileInputRef.current?.click();
@@ -72,19 +72,6 @@ export default function App() {
     void state.runVerification();
   };
 
-  const handleExportPdf = async () => {
-    if (tab !== 'editor') setTab('editor');
-    setIsExportingPdf(true);
-    try {
-      await new Promise((r) => setTimeout(r, 100));
-      await exportCircuitPdf(state);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : String(err));
-    } finally {
-      setIsExportingPdf(false);
-    }
-  };
-
   const bodyClass = [
     'app-body',
     paletteCollapsed ? 'palette-collapsed' : '',
@@ -105,19 +92,19 @@ export default function App() {
 
       <Header
         state={state}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onOpenFile={handleOpenFile}
         onSaveFile={handleSaveFile}
         onLoadSample={() => state.loadSample(createHealthyModel())}
         onVerify={handleVerify}
-        onExportPdf={() => void handleExportPdf()}
-        isExportingPdf={isExportingPdf}
       />
 
       <div className="tabs">
         {(
           [
             ['editor', 'Editor'],
-            ['connections', 'Wires'],
+            ['simulation', 'Simulation'],
             ['registry', 'Device Registry'],
             ['json', 'JSON'],
             ['graph', 'Graph Analysis'],
@@ -137,6 +124,13 @@ export default function App() {
 
       {tab === 'editor' && (
         <div className="editor-layout">
+          {state.simulation?.voltage.brownoutRisk && (
+            <div className="sim-alert sim-alert-danger sim-banner">
+              ⚠ ROBORIO BROWNOUT RISK DETECTED — system sags to{' '}
+              {state.simulation.voltage.systemVoltage.toFixed(2)} V. Open the Simulation tab for
+              details.
+            </div>
+          )}
           <WireLegend />
           <div className={bodyClass}>
             <CollapsiblePanel
@@ -165,9 +159,9 @@ export default function App() {
         </div>
       )}
 
-      {tab === 'connections' && (
+      {tab === 'simulation' && (
         <div className="tab-panel">
-          <ConnectionsPanel state={state} />
+          <SimulationPanel state={state} />
         </div>
       )}
 

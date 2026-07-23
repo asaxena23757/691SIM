@@ -18,6 +18,7 @@ describe("builtInDeviceDefinitions", () => {
       builtInDeviceDefinitions.map((definition) => definition.type),
     ).toEqual([
       "Battery",
+      "MainBreaker",
       "PDP",
       "PDH",
       "VRM",
@@ -39,7 +40,7 @@ describe("builtInDeviceDefinitions", () => {
   it("assigns each listed Phase 2 category", () => {
     expect(
       createDefaultDeviceRegistry().listByCategory(DeviceCategory.POWER),
-    ).toHaveLength(4);
+    ).toHaveLength(5);
     expect(
       createDefaultDeviceRegistry().listByCategory(DeviceCategory.CONTROLLER),
     ).toHaveLength(2);

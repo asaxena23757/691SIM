@@ -9,10 +9,16 @@ export function createHealthyRobotModel(): RobotModel {
     devices: [
       { id: "battery-1", type: "Battery", position: { x: 60, y: 320 } },
       {
+        id: "breaker-1",
+        type: "MainBreaker",
+        metadata: { breakerClosed: true },
+        position: { x: 220, y: 320 },
+      },
+      {
         id: "pdh-1",
         type: "PDH",
         metadata: { canId: 1 },
-        position: { x: 380, y: 320 },
+        position: { x: 420, y: 320 },
       },
       {
         id: "vrm-1",
@@ -53,16 +59,30 @@ export function createHealthyRobotModel(): RobotModel {
     ],
     connections: [
       {
-        id: "battery-pdh-power",
+        id: "battery-breaker-power",
         sourceDevice: "battery-1",
         sourcePort: "main_power",
+        targetDevice: "breaker-1",
+        targetPort: "power_in",
+      },
+      {
+        id: "battery-breaker-ground",
+        sourceDevice: "battery-1",
+        sourcePort: "ground",
+        targetDevice: "breaker-1",
+        targetPort: "ground_in",
+      },
+      {
+        id: "breaker-pdh-power",
+        sourceDevice: "breaker-1",
+        sourcePort: "power_out",
         targetDevice: "pdh-1",
         targetPort: "main_power_in",
       },
       {
-        id: "battery-pdh-ground",
-        sourceDevice: "battery-1",
-        sourcePort: "ground",
+        id: "breaker-pdh-ground",
+        sourceDevice: "breaker-1",
+        sourcePort: "ground_out",
         targetDevice: "pdh-1",
         targetPort: "ground_in",
       },
@@ -150,16 +170,11 @@ export function createHealthyRobotModel(): RobotModel {
         targetDevice: "radio-1",
         targetPort: "ground",
       },
+      // CAN daisy chain: roboRIO (built-in 120Ω terminator) -> devices -> PDH
+      // (switchable 120Ω terminator) so both physical ends are terminated.
       {
-        id: "rio-pdh-can",
+        id: "rio-spark-can",
         sourceDevice: "rio-1",
-        sourcePort: "can_bus",
-        targetDevice: "pdh-1",
-        targetPort: "can_bus",
-      },
-      {
-        id: "pdh-spark-can",
-        sourceDevice: "pdh-1",
         sourcePort: "can_bus",
         targetDevice: "spark-1",
         targetPort: "can_bus",
@@ -169,6 +184,13 @@ export function createHealthyRobotModel(): RobotModel {
         sourceDevice: "spark-1",
         sourcePort: "can_bus",
         targetDevice: "coder-1",
+        targetPort: "can_bus",
+      },
+      {
+        id: "coder-pdh-can",
+        sourceDevice: "coder-1",
+        sourcePort: "can_bus",
+        targetDevice: "pdh-1",
         targetPort: "can_bus",
       },
       {

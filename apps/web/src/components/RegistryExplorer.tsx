@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import type { DeviceDefinition, Port, PortType } from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';

@@ -1,7 +1,15 @@
 import { PortType, type Port } from '@691sim/core';
+import { SUPPORTED_GAUGES, DEFAULT_WIRE_LENGTH_INCHES } from '@691sim/simulation';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { PORT_TYPE_NAMES, portTypeColor } from '../utils/labels';
 import { isPortConnected } from '../utils/visiblePorts';
+import {
+  FUSE_RATING_OPTIONS,
+  getPdhFuseInfo,
+  getFuseRatingAmps,
+  fuseExceedsRating,
+} from '../utils/fuses';
+import { resolveConnectionPortType } from '../utils/wireStyles';
 
 interface PropertiesPanelProps {
   state: RobotModelState;
@@ -16,15 +24,53 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
     selectedDeviceId,
     updateDevice,
     removeDevice,
+    updateConnection,
     removeConnection,
     pendingPort,
     setPendingPort,
     handlePortClick,
+    simulation,
+    fuseViolationConnectionIds,
+    deviceTypes,
+    registry,
   } = state;
 
   const selectedConnection = model.connections.find((c) => c.id === selectedConnectionId);
 
   if (selectedConnection) {
+    const wireSim = simulation?.voltage.wireCurrents.find(
+      (w) => w.connectionId === selectedConnection.id,
+    );
+    const isPowerWire = wireSim !== undefined;
+    const srcType = deviceTypes.get(selectedConnection.sourceDevice) ?? '';
+    const tgtType = deviceTypes.get(selectedConnection.targetDevice) ?? '';
+    const portType =
+      resolveConnectionPortType(
+        registry,
+        selectedConnection.sourceDevice,
+        srcType,
+        selectedConnection.sourcePort,
+      ) ?? PortType.POWER;
+    const fuseInfo = getPdhFuseInfo(
+      portType,
+      srcType,
+      selectedConnection.sourcePort,
+      tgtType,
+      selectedConnection.targetPort,
+    );
+    const fuseAmps = fuseInfo.show ? getFuseRatingAmps(selectedConnection, fuseInfo.port) : 0;
+    const fuseFault =
+      fuseInfo.show &&
+      wireSim &&
+      fuseExceedsRating(wireSim.currentAmps, fuseAmps);
+    const fuseBlown = fuseViolationConnectionIds.has(selectedConnection.id);
+    const currentGauge = Number(
+      selectedConnection.metadata?.gauge ?? wireSim?.gauge ?? 12,
+    );
+    const currentLength = Number(
+      selectedConnection.metadata?.lengthInches ?? wireSim?.lengthInches ?? DEFAULT_WIRE_LENGTH_INCHES,
+    );
+
     return (
       <div className="properties-scroll">
         <div className="field">
@@ -45,6 +91,88 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
             readOnly
           />
         </div>
+
+        {fuseInfo.show && (
+          <div className="field">
+            <label>PDH Fuse Rating</label>
+            <select
+              value={fuseAmps}
+              onChange={(e: { target: { value: string } }) =>
+                updateConnection(selectedConnection.id, {
+                  metadata: { fuseRatingAmps: Number(e.target.value) },
+                })
+              }
+            >
+              {FUSE_RATING_OPTIONS.map((a) => (
+                <option key={a} value={a}>
+                  {a} A
+                </option>
+              ))}
+            </select>
+            {wireSim && (
+              <div className="muted-line" style={{ marginTop: '0.35rem' }}>
+                Branch load: {wireSim.currentAmps.toFixed(1)} A
+              </div>
+            )}
+            {(fuseFault || fuseBlown) && (
+              <div className="sim-alert sim-alert-danger" style={{ marginTop: '0.5rem' }}>
+                Fuse too small — {wireSim?.currentAmps.toFixed(1)} A exceeds {fuseAmps} A rating.
+              </div>
+            )}
+          </div>
+        )}
+
+        {isPowerWire && (
+          <>
+            <div className="field">
+              <label>Wire Gauge (AWG)</label>
+              <select
+                value={currentGauge}
+                onChange={(e: { target: { value: string } }) =>
+                  updateConnection(selectedConnection.id, {
+                    metadata: { gauge: Number(e.target.value) },
+                  })
+                }
+              >
+                {SUPPORTED_GAUGES.map((g) => (
+                  <option key={g} value={g}>
+                    {g} AWG
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>Wire Length (inches)</label>
+              <input
+                type="number"
+                min="1"
+                value={currentLength}
+                onChange={(e: { target: { value: string } }) =>
+                  updateConnection(selectedConnection.id, {
+                    metadata: { lengthInches: Number(e.target.value) },
+                  })
+                }
+              />
+            </div>
+            {wireSim && (
+              <div className="field">
+                <label>Wire Analysis ({simulation?.mode})</label>
+                <ul className="info-list">
+                  <li>Current: {wireSim.currentAmps.toFixed(1)} A</li>
+                  <li>Ampacity: {wireSim.maxAmps} A</li>
+                  <li>Resistance: {wireSim.resistanceOhms.toFixed(4)} Ω</li>
+                  <li>Voltage drop: {wireSim.voltageDrop.toFixed(3)} V</li>
+                </ul>
+                {wireSim.exceedsAmpacity && (
+                  <div className="sim-alert sim-alert-danger">
+                    Exceeds Ampacity: Safety Hazard!
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
         <button
           type="button"
           className="btn btn-danger"
@@ -93,6 +221,7 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
 
   const canId = selectedDevice.metadata?.canId;
   const ipAddress = selectedDevice.metadata?.ipAddress;
+  const breakerClosed = selectedDevice.metadata?.breakerClosed !== false;
 
   return (
     <div className="properties-scroll">
@@ -113,6 +242,31 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
         <label>Instance ID</label>
         <input value={selectedDevice.id} readOnly />
       </div>
+
+      {selectedDefinition.type === 'MainBreaker' && (
+        <div className="field">
+          <label>Breaker State</label>
+          <select
+            value={breakerClosed ? 'closed' : 'open'}
+            onChange={(e: { target: { value: string } }) =>
+              updateDevice(selectedDevice.id, {
+                metadata: {
+                  ...selectedDevice.metadata,
+                  breakerClosed: e.target.value === 'closed',
+                },
+              })
+            }
+          >
+            <option value="closed">Closed (conducting)</option>
+            <option value="open">Open (tripped)</option>
+          </select>
+          {!breakerClosed && (
+            <div className="sim-alert sim-alert-danger" style={{ marginTop: '0.5rem' }}>
+              Breaker is stopping current flow.
+            </div>
+          )}
+        </div>
+      )}
 
       {selectedDefinition.ports.some((p: Port) => p.type === PortType.CAN) && (
         <div className="field">
