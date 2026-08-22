@@ -21,9 +21,9 @@ export function Header({
   onLoadSample,
   onVerify,
 }: HeaderProps) {
-  const { model, verification, isVerifying } = state;
-  const errorCount = verification.diagnostics.filter((d: any) => d.severity === 2).length;
-  const warningCount = verification.diagnostics.filter((d: any) => d.severity === 1).length;
+  const { model, allDiagnostics, isVerifying } = state;
+  const errorCount = allDiagnostics.filter((d: any) => d.severity === 2).length;
+  const warningCount = allDiagnostics.filter((d: any) => d.severity === 1).length;
 
   return (
     <header className="app-header">
@@ -77,7 +77,7 @@ export function Header({
         {warningCount > 0 && <span className="badge badge-warning">{warningCount} warnings</span>}
         {errorCount === 0 &&
           warningCount === 0 &&
-          verification.diagnostics.length === 0 &&
+          allDiagnostics.length === 0 &&
           !isVerifying && <span className="badge badge-ok">No issues</span>}
       </div>
 

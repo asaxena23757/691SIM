@@ -195,7 +195,7 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
     ports: [
       powerInput(),
       groundInput(),
-      canPort("can_bus", 16, true),
+      canPort("can_bus", 2, true),
       ethernetPort("eth_0", true),
       port("usb_b", PortType.USBA, PortDirection.BIDIRECTIONAL, false, 1),
       port("pwm_0", PortType.PWM, PortDirection.OUTPUT, false, 1),
@@ -220,7 +220,7 @@ export const builtInDeviceDefinitions: DeviceDefinition[] = [
     ports: [
       powerInput(),
       groundInput(),
-      canPort("can_bus", 16, true),
+      canPort("can_bus", 2, true),
       ethernetPort("eth_0"),
     ],
     requirements: poweredDeviceRequirements(),

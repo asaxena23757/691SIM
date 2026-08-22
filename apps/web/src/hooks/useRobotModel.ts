@@ -30,6 +30,7 @@ export function useRobotModel(initial: RobotModel) {
   const [verifyProgress, setVerifyProgress] = useState(0);
   const [simulationMode, setSimulationMode] = useState<LoadMode>('peak');
   const [wireMessage, setWireMessage] = useState<string | null>(null);
+  const [showWireLabels, setShowWireLabels] = useState(true);
 
   const registry = useMemo(() => createDefaultDeviceRegistry(), []);
 
@@ -87,6 +88,17 @@ export function useRobotModel(initial: RobotModel) {
     return ids;
   }, [simulation, model.connections, deviceTypes, registry]);
 
+  const allDiagnostics = useMemo(() => {
+    const seen = new Set<string>();
+    const merged = [...verification.diagnostics, ...(simulation?.diagnostics ?? [])];
+    return merged.filter((d) => {
+      const key = `${d.code ?? ''}|${d.message}|${(d.deviceIds ?? []).join(',')}|${(d.connectionIds ?? []).join(',')}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [verification.diagnostics, simulation?.diagnostics]);
+
   const errorDeviceIds = useMemo(() => {
     const ids = new Set<string>();
 
@@ -96,19 +108,13 @@ export function useRobotModel(initial: RobotModel) {
       }
     }
 
-    for (const diag of verification.diagnostics) {
-      if (diag.severity === 2) {
-        diag.deviceIds?.forEach((id) => ids.add(id));
-      }
-    }
-
-    for (const diag of simulation?.diagnostics ?? []) {
+    for (const diag of allDiagnostics) {
       if (diag.severity === 2) {
         diag.deviceIds?.forEach((id) => ids.add(id));
       }
     }
     return ids;
-  }, [graph, verification.diagnostics, simulation?.diagnostics]);
+  }, [graph, allDiagnostics]);
 
   const selectedDevice = useMemo(
     () => model.devices.find((d: any) => d.id === selectedDeviceId) ?? null,
@@ -232,7 +238,7 @@ export function useRobotModel(initial: RobotModel) {
 
   const addConnection = useCallback(
     (source: SelectedPort, target: SelectedPort) => {
-      const check = canConnectPorts(registry, deviceTypes, source, target);
+      const check = canConnectPorts(registry, deviceTypes, model.connections, source, target);
       if (!check.ok || !check.oriented) {
         setWireMessage(check.reason ?? 'Cannot connect these ports.');
         setPendingPort(null);
@@ -305,6 +311,13 @@ export function useRobotModel(initial: RobotModel) {
     [updateModel],
   );
 
+  const setConnectionWaypoints = useCallback(
+    (connectionId: string, waypoints: { x: number; y: number }[]) => {
+      updateConnection(connectionId, { metadata: { waypoints } });
+    },
+    [updateConnection],
+  );
+
   const removeConnection = useCallback(
     (connectionId: string) => {
       const groundId = groundConnectionIdForPower(connectionId);
@@ -359,6 +372,9 @@ export function useRobotModel(initial: RobotModel) {
     ampacityConnectionIds,
     fuseViolationConnectionIds,
     wireMessage,
+    showWireLabels,
+    setShowWireLabels,
+    allDiagnostics,
     selectedDeviceId,
     setSelectedDeviceId,
     selectedConnectionId,
@@ -378,6 +394,7 @@ export function useRobotModel(initial: RobotModel) {
     moveDevice,
     addConnection,
     updateConnection,
+    setConnectionWaypoints,
     removeConnection,
     handlePortClick,
     startWireFrom,
