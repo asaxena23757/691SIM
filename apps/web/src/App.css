@@ -683,7 +683,7 @@
   cursor: pointer;
 }
 
-.connection-group polyline {
+.connection-group path {
   pointer-events: stroke;
 }
 
@@ -693,6 +693,17 @@
   stroke-width: 2;
   cursor: grab;
   pointer-events: all;
+  opacity: 0.72;
+  transition: opacity 0.15s ease, r 0.15s ease;
+}
+
+.connection-group:hover .wire-route-handle,
+.wire-route-handle.selected {
+  opacity: 1;
+}
+
+.wire-route-handle.selected {
+  stroke-width: 2.5;
 }
 
 .wire-route-handle:active {
