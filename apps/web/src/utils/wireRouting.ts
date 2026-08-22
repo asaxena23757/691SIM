@@ -21,8 +21,10 @@ export interface RoutedSegment {
   bundleOffset: number;
   waypoints: Point[];
   path: Point[];
-  /** Draggable routing handle (stored waypoint or auto bend). */
+  /** Draggable handle — always lies on the wire path, offset from fuse. */
   controlPoint: Point;
+  /** Fuse marker position (path midpoint). */
+  fusePoint: Point;
   labelPoint: Point;
 }
 
@@ -116,36 +118,71 @@ export function simplifyPath(path: Point[]): Point[] {
   return out;
 }
 
-/** Midpoint along a polyline (for labels and drag handles). */
-export function labelPointOnPath(path: Point[]): Point {
+/** Point at fraction t (0–1) along a polyline. */
+export function pointOnPathAtT(path: Point[], t: number): Point {
   if (path.length === 0) return { x: 0, y: 0 };
   if (path.length === 1) return path[0]!;
   const total = polylineLength(path);
-  const half = total / 2;
+  if (total === 0) return path[0]!;
+  const target = Math.max(0, Math.min(1, t)) * total;
   let walked = 0;
   for (let i = 1; i < path.length; i++) {
     const a = path[i - 1]!;
     const b = path[i]!;
     const seg = Math.hypot(b.x - a.x, b.y - a.y);
-    if (walked + seg >= half) {
-      const t = seg === 0 ? 0 : (half - walked) / seg;
-      return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+    if (walked + seg >= target) {
+      const local = seg === 0 ? 0 : (target - walked) / seg;
+      return { x: a.x + (b.x - a.x) * local, y: a.y + (b.y - a.y) * local };
     }
     walked += seg;
   }
   return path[path.length - 1]!;
 }
 
-/** Default drag handle: user waypoint, bend center, or path midpoint. */
-export function controlPointForRoute(path: Point[], waypoints: Point[]): Point {
-  if (waypoints.length > 0) return waypoints[0]!;
-  if (path.length >= 4) {
-    const a = path[1]!;
-    const b = path[2]!;
-    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+/** Closest point on a polyline to an arbitrary cursor position. */
+export function nearestPointOnPath(path: Point[], cursor: Point): Point {
+  if (path.length === 0) return cursor;
+  if (path.length === 1) return path[0]!;
+
+  let best = path[0]!;
+  let bestDist = Infinity;
+
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1]!;
+    const b = path[i]!;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const lenSq = dx * dx + dy * dy;
+    const t =
+      lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((cursor.x - a.x) * dx + (cursor.y - a.y) * dy) / lenSq));
+    const p = { x: a.x + dx * t, y: a.y + dy * t };
+    const dist = Math.hypot(cursor.x - p.x, cursor.y - p.y);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = p;
+    }
   }
-  if (path.length === 3) return path[1]!;
-  return labelPointOnPath(path);
+
+  return best;
+}
+
+/** Midpoint along a polyline (for labels). */
+export function labelPointOnPath(path: Point[]): Point {
+  return pointOnPathAtT(path, 0.5);
+}
+
+/** Fuse marker sits at the wire midpoint. */
+export function fusePointForRoute(path: Point[]): Point {
+  return pointOnPathAtT(path, 0.5);
+}
+
+/** Handle on the wire, away from the fuse at t=0.5. */
+export function controlPointForRoute(path: Point[], waypoints: Point[], connectionId = ''): Point {
+  if (waypoints.length > 0) {
+    return nearestPointOnPath(path, waypoints[0]!);
+  }
+  const t = connectionId.charCodeAt(connectionId.length - 1)! % 2 === 0 ? 0.35 : 0.65;
+  return pointOnPathAtT(path, t);
 }
 
 function expandRect(rect: Rect, margin: number): Rect {
@@ -300,7 +337,8 @@ function applyCorridorDeconfliction(routes: RoutedSegment[]): void {
       if (Math.abs(extra) < 0.1) return;
       const rerouted = autoOrthogonalPath(route.start, route.end, route.bundleOffset + extra, []);
       route.path = rerouted;
-      route.controlPoint = controlPointForRoute(rerouted, route.waypoints);
+      route.controlPoint = controlPointForRoute(rerouted, route.waypoints, route.connectionId);
+      route.fusePoint = fusePointForRoute(rerouted);
       route.labelPoint = labelPointOnPath(rerouted);
     });
   }
@@ -337,11 +375,13 @@ function applyWireSeparation(routes: RoutedSegment[]): void {
       );
 
       a.path = rerouteA;
-      a.controlPoint = controlPointForRoute(rerouteA, a.waypoints);
+      a.controlPoint = controlPointForRoute(rerouteA, a.waypoints, a.connectionId);
+      a.fusePoint = fusePointForRoute(rerouteA);
       a.labelPoint = labelPointOnPath(rerouteA);
 
       b.path = rerouteB;
-      b.controlPoint = controlPointForRoute(rerouteB, b.waypoints);
+      b.controlPoint = controlPointForRoute(rerouteB, b.waypoints, b.connectionId);
+      b.fusePoint = fusePointForRoute(rerouteB);
       b.labelPoint = labelPointOnPath(rerouteB);
     }
   }
@@ -499,7 +539,8 @@ export function computeWireRoutes(
         bundleOffset,
         waypoints,
         path,
-        controlPoint: controlPointForRoute(path, waypoints),
+        controlPoint: controlPointForRoute(path, waypoints, conn.id),
+        fusePoint: fusePointForRoute(path),
         labelPoint: labelPointOnPath(path),
       });
     });
@@ -545,18 +586,12 @@ export function offsetPathPerpendicular(path: Point[], offset: number): Point[] 
 }
 
 /**
- * SVG path with rounded corners at bends, or a smooth quadratic curve when the
- * user has set a single control point.
+ * SVG path with rounded corners at bends. All vertices lie on the rendered wire.
  */
 export function buildSmoothWirePathD(points: Point[], cornerRadius = CORNER_RADIUS): string {
   if (points.length < 2) return '';
   if (points.length === 2) {
     return `M ${points[0]!.x} ${points[0]!.y} L ${points[1]!.x} ${points[1]!.y}`;
-  }
-
-  if (points.length === 3) {
-    const [s, c, e] = points;
-    return `M ${s!.x} ${s!.y} Q ${c!.x} ${c!.y} ${e!.x} ${e!.y}`;
   }
 
   const r = cornerRadius;

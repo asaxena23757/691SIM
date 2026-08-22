@@ -7,6 +7,7 @@ import {
   buildSmoothWirePathD,
   computeWireRoutes,
   getDisplayConnections,
+  nearestPointOnPath,
   offsetPathPerpendicular,
   resolveLabelPositions,
   type Point,
@@ -159,7 +160,7 @@ interface ConnectionLinesProps {
   state: RobotModelState;
   getPortPosition: (deviceId: string, portId: string) => Point | undefined;
   getDeviceBounds: (deviceId: string) => Rect | undefined;
-  onWaypointDragStart: (connectionId: string, e: PointerEvent) => void;
+  onWaypointDragStart: (connectionId: string, path: Point[], e: PointerEvent) => void;
 }
 
 function ConnectionLines({
@@ -339,14 +340,14 @@ function ConnectionLines({
             )}
             {fuseInfo.show && (
               <FuseMarker
-                x={route.controlPoint.x}
-                y={route.controlPoint.y}
+                x={route.fusePoint.x}
+                y={route.fusePoint.y}
                 rating={fuseRating}
                 fault={fuseFault}
               />
             )}
             {ampacityConnectionIds.has(conn.id) && (
-              <AmpacityHazardMarker x={route.controlPoint.x} y={route.controlPoint.y} />
+              <AmpacityHazardMarker x={route.fusePoint.x} y={route.fusePoint.y} />
             )}
             {showWireLabels && labelInfo.show && displayText && labelPos && (
               <WireLabel
@@ -361,7 +362,9 @@ function ConnectionLines({
               cx={route.controlPoint.x}
               cy={route.controlPoint.y}
               r={isSelected ? 7 : 5}
-              onPointerDown={(e: PointerEvent) => onWaypointDragStart(conn.id, e)}
+              onPointerDown={(e: PointerEvent) =>
+                onWaypointDragStart(conn.id, route.path, e)
+              }
               onClick={(e: { stopPropagation(): void }) => e.stopPropagation()}
             />
             <title>
@@ -452,7 +455,7 @@ export function Canvas({ state }: CanvasProps) {
   const wireFromRef = useRef<{ deviceId: string; portId: string } | null>(null);
   const wireDragActiveRef = useRef(false);
   const wireDragStartRef = useRef<{ x: number; y: number } | null>(null);
-  const waypointDragRef = useRef<{ connectionId: string } | null>(null);
+  const waypointDragRef = useRef<{ connectionId: string; path: Point[] } | null>(null);
 
   const canvasPoint = useCallback((clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -486,10 +489,10 @@ export function Canvas({ state }: CanvasProps) {
   );
 
   const onWaypointDragStart = useCallback(
-    (connectionId: string, e: PointerEvent) => {
+    (connectionId: string, path: Point[], e: PointerEvent) => {
       e.stopPropagation();
       (e.currentTarget as SVGElement).setPointerCapture(e.pointerId);
-      waypointDragRef.current = { connectionId };
+      waypointDragRef.current = { connectionId, path };
       setSelectedConnectionId(connectionId);
     },
     [setSelectedConnectionId],
@@ -540,7 +543,13 @@ export function Canvas({ state }: CanvasProps) {
     (e: PointerEvent) => {
       if (waypointDragRef.current) {
         const pt = canvasPoint(e.clientX, e.clientY);
-        setConnectionWaypoints(waypointDragRef.current.connectionId, [pt]);
+        const { connectionId, path } = waypointDragRef.current;
+        const snapped = nearestPointOnPath(path, pt);
+        const start = path[0]!;
+        const end = path[path.length - 1]!;
+        const nextPath = [start, snapped, end];
+        waypointDragRef.current = { connectionId, path: nextPath };
+        setConnectionWaypoints(connectionId, [snapped]);
         return;
       }
 
