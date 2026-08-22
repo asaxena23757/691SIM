@@ -653,6 +653,8 @@
 .wire-legend {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-sm) var(--space-lg);
   padding: var(--space-2xs) var(--space-md);
   background: var(--bg-subbar);
@@ -664,6 +666,54 @@
     background-color 0.25s ease,
     border-color 0.25s ease,
     color 0.25s ease;
+}
+
+.wire-legend-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+}
+
+.wire-label-toggle.active {
+  background: var(--surface-selected);
+  border-color: var(--accent);
+}
+
+.connection-group {
+  cursor: pointer;
+}
+
+.connection-group polyline {
+  pointer-events: stroke;
+}
+
+.wire-route-handle {
+  fill: var(--peach-glow);
+  stroke: var(--yale-blue);
+  stroke-width: 2;
+  cursor: grab;
+  pointer-events: all;
+}
+
+.wire-route-handle:active {
+  cursor: grabbing;
+}
+
+.port-btn.port-full {
+  opacity: 0.45;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
 }
 
 .wire-legend-item {

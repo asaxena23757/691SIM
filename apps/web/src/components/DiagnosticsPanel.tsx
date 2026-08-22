@@ -21,8 +21,11 @@ function severityClass(severity: Severity): string {
 }
 
 export function DiagnosticsPanel({ state, collapsed, onToggle }: DiagnosticsPanelProps) {
-  const { verification, focusDiagnostic, isVerifying, verifyProgress } = state;
-  const { diagnostics, hasErrors } = verification;
+  const { allDiagnostics, focusDiagnostic, isVerifying, verifyProgress } = state;
+  const { diagnostics, hasErrors } = {
+    diagnostics: allDiagnostics,
+    hasErrors: allDiagnostics.some((d: Diagnostic) => d.severity === 2),
+  };
 
   const grouped = [
     Severity.ERROR,

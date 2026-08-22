@@ -9,7 +9,8 @@ import {
   getFuseRatingAmps,
   fuseExceedsRating,
 } from '../utils/fuses';
-import { resolveConnectionPortType } from '../utils/wireStyles';
+import { resolveConnectionPortType, WIRE_COLOR_PRESETS } from '../utils/wireStyles';
+import { autoWireLabel } from '../utils/wireLabels';
 
 interface PropertiesPanelProps {
   state: RobotModelState;
@@ -25,6 +26,7 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
     updateDevice,
     removeDevice,
     updateConnection,
+    setConnectionWaypoints,
     removeConnection,
     pendingPort,
     setPendingPort,
@@ -70,9 +72,22 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
     const currentLength = Number(
       selectedConnection.metadata?.lengthInches ?? wireSim?.lengthInches ?? DEFAULT_WIRE_LENGTH_INCHES,
     );
+    const wireColor =
+      typeof selectedConnection.metadata?.color === 'string'
+        ? selectedConnection.metadata.color
+        : '';
+    const autoLabel = autoWireLabel(selectedConnection, model, registry);
+    const customLabel =
+      typeof selectedConnection.metadata?.label === 'string'
+        ? selectedConnection.metadata.label
+        : '';
 
     return (
       <div className="properties-scroll">
+        <div className="field">
+          <label>Wire Kind</label>
+          <input value={PORT_TYPE_NAMES[portType]} readOnly />
+        </div>
         <div className="field">
           <label>ID</label>
           <input value={selectedConnection.id} readOnly />
@@ -90,6 +105,56 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
             value={`${selectedConnection.targetDevice}.${selectedConnection.targetPort}`}
             readOnly
           />
+        </div>
+
+        <div className="field">
+          <label>Wire Label</label>
+          <input
+            value={customLabel}
+            placeholder={autoLabel}
+            onChange={(e: { target: { value: string } }) =>
+              updateConnection(selectedConnection.id, {
+                metadata: { label: e.target.value || undefined },
+              })
+            }
+          />
+          <div className="muted-line" style={{ marginTop: '0.35rem' }}>
+            Auto: {autoLabel}
+            {portType === PortType.CAN && ' · CAN bus uses shared net label "CAN"'}
+          </div>
+          <label className="checkbox-row" style={{ marginTop: '0.45rem' }}>
+            <input
+              type="checkbox"
+              checked={selectedConnection.metadata?.hideAutoLabel === true}
+              onChange={(e: { target: { checked: boolean } }) =>
+                updateConnection(selectedConnection.id, {
+                  metadata: { hideAutoLabel: e.target.checked || undefined },
+                })
+              }
+            />
+            Hide auto label on canvas
+          </label>
+        </div>
+
+        <div className="field">
+          <label>Wire Color</label>
+          <select
+            value={wireColor || 'default'}
+            onChange={(e: { target: { value: string } }) =>
+              updateConnection(selectedConnection.id, {
+                metadata: {
+                  color: e.target.value === 'default' ? undefined : e.target.value,
+                },
+              })
+            }
+          >
+            <option value="default">Default (by wire type)</option>
+            {WIRE_COLOR_PRESETS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
         </div>
 
         {fuseInfo.show && (
@@ -172,6 +237,17 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
             )}
           </>
         )}
+
+        <button
+          type="button"
+          className="btn"
+          style={{ marginBottom: '0.5rem' }}
+          onClick={() =>
+            setConnectionWaypoints(selectedConnection.id, [])
+          }
+        >
+          Reset wire route
+        </button>
 
         <button
           type="button"

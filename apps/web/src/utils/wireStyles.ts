@@ -1,4 +1,4 @@
-import { PortType } from '@691sim/core';
+import { PortType, type Connection } from '@691sim/core';
 
 export interface WireVisual {
   kind: 'single' | 'pair';
@@ -77,4 +77,44 @@ export function resolveConnectionPortType(
 ): PortType | undefined {
   const definition = registry.get(deviceType);
   return definition?.ports.find((port) => port.id === portId)?.type;
+}
+
+const WIRE_COLOR_PRESETS = [
+  '#cc2936',
+  '#08415c',
+  '#22c55e',
+  '#eab308',
+  '#2563eb',
+  '#f1bf98',
+  '#6b818c',
+  '#111827',
+  '#f472b6',
+  '#ffffff',
+] as const;
+
+export { WIRE_COLOR_PRESETS };
+
+/** Apply optional per-connection color overrides from metadata. */
+export function resolveWireColors(
+  connection: Connection,
+  portType: PortType,
+): WireVisual {
+  const base = wireVisualForPortType(portType);
+  const custom = connection.metadata?.color;
+  const customSecondary = connection.metadata?.colorSecondary;
+
+  if (typeof custom === 'string' && custom) {
+    if (base.kind === 'pair') {
+      return {
+        ...base,
+        colors: [
+          custom,
+          typeof customSecondary === 'string' && customSecondary ? customSecondary : base.colors[1]!,
+        ],
+      };
+    }
+    return { ...base, colors: [custom] };
+  }
+
+  return base;
 }

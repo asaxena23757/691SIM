@@ -131,7 +131,10 @@ export default function App() {
               details.
             </div>
           )}
-          <WireLegend />
+          <WireLegend
+            showWireLabels={state.showWireLabels}
+            onToggleLabels={() => state.setShowWireLabels((v) => !v)}
+          />
           <div className={bodyClass}>
             <CollapsiblePanel
               title="Device Palette"
