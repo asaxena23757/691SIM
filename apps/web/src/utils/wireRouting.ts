@@ -21,7 +21,16 @@ export interface RoutedSegment {
   bundleOffset: number;
   waypoints: Point[];
   path: Point[];
+  /** Draggable routing handle (stored waypoint or auto bend). */
+  controlPoint: Point;
   labelPoint: Point;
+}
+
+export interface LabelPlacementRequest {
+  id: string;
+  anchor: Point;
+  text: string;
+  detail?: string;
 }
 
 type RegistryLookup = {
@@ -35,10 +44,12 @@ export type PortPositionLookup = (
 
 export type DeviceBoundsLookup = (deviceId: string) => Rect | undefined;
 
-const BUNDLE_SPACING = 14;
-const LANE_SPACING = 12;
+const BUNDLE_SPACING = 18;
+const LANE_SPACING = 18;
+const MIN_WIRE_GAP = 8;
 const OBSTACLE_MARGIN = 10;
 const ALIGN_THRESHOLD = 10;
+const CORNER_RADIUS = 16;
 
 /** Connections drawn on the canvas (ground is implied by the red/black 12V pair). */
 export function getDisplayConnections(
@@ -123,6 +134,18 @@ export function labelPointOnPath(path: Point[]): Point {
     walked += seg;
   }
   return path[path.length - 1]!;
+}
+
+/** Default drag handle: user waypoint, bend center, or path midpoint. */
+export function controlPointForRoute(path: Point[], waypoints: Point[]): Point {
+  if (waypoints.length > 0) return waypoints[0]!;
+  if (path.length >= 4) {
+    const a = path[1]!;
+    const b = path[2]!;
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  }
+  if (path.length === 3) return path[1]!;
+  return labelPointOnPath(path);
 }
 
 function expandRect(rect: Rect, margin: number): Rect {
@@ -255,7 +278,6 @@ function segmentKey(p1: Point, p2: Point): string {
   return a < b ? `${a}|${b}` : `${b}|${a}`;
 }
 
-/** Spread wires that reuse the same corridor segment. */
 function applyCorridorDeconfliction(routes: RoutedSegment[]): void {
   const usage = new Map<string, string[]>();
 
@@ -274,20 +296,140 @@ function applyCorridorDeconfliction(routes: RoutedSegment[]): void {
     sorted.forEach((id, index) => {
       const route = routes.find((r) => r.connectionId === id);
       if (!route || route.waypoints.length > 0) return;
-      const extra = (index - (sorted.length - 1) / 2) * (LANE_SPACING * 0.6);
+      const extra = (index - (sorted.length - 1) / 2) * LANE_SPACING;
       if (Math.abs(extra) < 0.1) return;
-      const start = route.start;
-      const end = route.end;
-      const rerouted = autoOrthogonalPath(start, end, route.bundleOffset + extra, []);
+      const rerouted = autoOrthogonalPath(route.start, route.end, route.bundleOffset + extra, []);
       route.path = rerouted;
+      route.controlPoint = controlPointForRoute(rerouted, route.waypoints);
       route.labelPoint = labelPointOnPath(rerouted);
     });
   }
 }
 
+/** Push apart routes whose middle segments run too close together. */
+function applyWireSeparation(routes: RoutedSegment[]): void {
+  for (let i = 0; i < routes.length; i++) {
+    for (let j = i + 1; j < routes.length; j++) {
+      const a = routes[i]!;
+      const b = routes[j]!;
+      if (a.waypoints.length > 0 || b.waypoints.length > 0) continue;
+
+      const aMid = a.controlPoint;
+      const bMid = b.controlPoint;
+      const dist = Math.hypot(aMid.x - bMid.x, aMid.y - bMid.y);
+      if (dist >= MIN_WIRE_GAP * 2 || dist < 0.01) continue;
+
+      const push = ((MIN_WIRE_GAP * 2 - dist) / 2) * 1.1;
+      const nx = (bMid.x - aMid.x) / dist;
+      const ny = (bMid.y - aMid.y) / dist;
+
+      const rerouteA = autoOrthogonalPath(
+        a.start,
+        a.end,
+        a.bundleOffset - nx * push,
+        [],
+      );
+      const rerouteB = autoOrthogonalPath(
+        b.start,
+        b.end,
+        b.bundleOffset + nx * push,
+        [],
+      );
+
+      a.path = rerouteA;
+      a.controlPoint = controlPointForRoute(rerouteA, a.waypoints);
+      a.labelPoint = labelPointOnPath(rerouteA);
+
+      b.path = rerouteB;
+      b.controlPoint = controlPointForRoute(rerouteB, b.waypoints);
+      b.labelPoint = labelPointOnPath(rerouteB);
+    }
+  }
+}
+
+export function estimateLabelBounds(text: string, detail?: string): Rect {
+  const lines = detail ? [text, detail] : [text];
+  const height = lines.length * 11 + 6;
+  const width = Math.max(...lines.map((l) => l.length * 5.5), 40) + 10;
+  return { x: 0, y: 0, width, height };
+}
+
+function rectsOverlap(a: Rect, ax: number, ay: number, b: Rect, bx: number, by: number, pad = 6): boolean {
+  return (
+    ax - pad < bx + b.width + pad &&
+    ax + a.width + pad > bx - pad &&
+    ay - pad < by + b.height + pad &&
+    ay + a.height + pad > by - pad
+  );
+}
+
+/** Nudge label anchors so visible labels do not overlap each other or devices. */
+export function resolveLabelPositions(
+  labels: LabelPlacementRequest[],
+  deviceObstacles: Rect[] = [],
+): Map<string, Point> {
+  const positions = new Map<string, Point>();
+  const placed: Array<{ rect: Rect; x: number; y: number }> = [];
+
+  const offsets = [
+    { x: 0, y: 0 },
+    { x: 0, y: -22 },
+    { x: 0, y: 22 },
+    { x: -36, y: 0 },
+    { x: 36, y: 0 },
+    { x: -36, y: -22 },
+    { x: 36, y: -22 },
+    { x: -36, y: 22 },
+    { x: 36, y: 22 },
+    { x: 0, y: -44 },
+    { x: 0, y: 44 },
+    { x: -72, y: 0 },
+    { x: 72, y: 0 },
+  ];
+
+  for (const label of labels) {
+    const bounds = estimateLabelBounds(label.text, label.detail);
+    let chosen = label.anchor;
+    let placedThis = false;
+
+    for (const off of offsets) {
+      const cx = label.anchor.x + off.x;
+      const cy = label.anchor.y + off.y;
+      const left = cx - bounds.width / 2;
+      const top = cy - bounds.height / 2;
+
+      const hitsDevice = deviceObstacles.some((obs) =>
+        rectsOverlap(bounds, left, top, obs, obs.x, obs.y, 4),
+      );
+      if (hitsDevice) continue;
+
+      const hitsLabel = placed.some((p) =>
+        rectsOverlap(bounds, left, top, p.rect, p.x, p.y, 8),
+      );
+      if (hitsLabel) continue;
+
+      chosen = { x: cx, y: cy };
+      placed.push({ rect: bounds, x: left, y: top });
+      placedThis = true;
+      break;
+    }
+
+    if (!placedThis) {
+      placed.push({
+        rect: bounds,
+        x: chosen.x - bounds.width / 2,
+        y: chosen.y - bounds.height / 2,
+      });
+    }
+
+    positions.set(label.id, chosen);
+  }
+
+  return positions;
+}
+
 /**
  * Spread wires that share the same device pair so they do not fully overlap.
- * Uses port positions when available, otherwise device centers.
  * Auto-routes orthogonally when no manual waypoints are set.
  */
 export function computeWireRoutes(
@@ -337,20 +479,13 @@ export function computeWireRoutes(
       const laneOffset =
         (gi - (globalCount - 1) / 2) * LANE_SPACING + bundleOffset * 0.35;
 
-      const obstacles: Rect[] = [];
-      if (getDeviceBounds) {
-        for (const deviceId of new Set([conn.sourceDevice, conn.targetDevice])) {
-          const bounds = getDeviceBounds(deviceId);
-          if (bounds) obstacles.push(bounds);
-        }
-      }
       const allObstacles =
         getDeviceBounds != null
           ? [...new Set(connections.flatMap((c) => [c.sourceDevice, c.targetDevice]))]
               .filter((id) => id !== conn.sourceDevice && id !== conn.targetDevice)
               .map((id) => getDeviceBounds(id))
               .filter((r): r is Rect => r != null)
-          : obstacles;
+          : [];
 
       const path =
         waypoints.length > 0
@@ -364,12 +499,14 @@ export function computeWireRoutes(
         bundleOffset,
         waypoints,
         path,
+        controlPoint: controlPointForRoute(path, waypoints),
         labelPoint: labelPointOnPath(path),
       });
     });
   }
 
   applyCorridorDeconfliction(routes);
+  applyWireSeparation(routes);
   return routes;
 }
 
@@ -392,6 +529,63 @@ export function offsetLineEndpoints(
     start: { x: start.x + perpX, y: start.y + perpY },
     end: { x: end.x + perpX, y: end.y + perpY },
   };
+}
+
+/** Perpendicular offset for paired wire rendering. */
+export function offsetPathPerpendicular(path: Point[], offset: number): Point[] {
+  if (offset === 0 || path.length < 2) return path;
+  return path.map((p, i) => {
+    const prev = path[i - 1] ?? p;
+    const next = path[i + 1] ?? p;
+    const dx = next.x - prev.x;
+    const dy = next.y - prev.y;
+    const len = Math.hypot(dx, dy) || 1;
+    return { x: p.x + (-dy / len) * offset, y: p.y + (dx / len) * offset };
+  });
+}
+
+/**
+ * SVG path with rounded corners at bends, or a smooth quadratic curve when the
+ * user has set a single control point.
+ */
+export function buildSmoothWirePathD(points: Point[], cornerRadius = CORNER_RADIUS): string {
+  if (points.length < 2) return '';
+  if (points.length === 2) {
+    return `M ${points[0]!.x} ${points[0]!.y} L ${points[1]!.x} ${points[1]!.y}`;
+  }
+
+  if (points.length === 3) {
+    const [s, c, e] = points;
+    return `M ${s!.x} ${s!.y} Q ${c!.x} ${c!.y} ${e!.x} ${e!.y}`;
+  }
+
+  const r = cornerRadius;
+  let d = `M ${points[0]!.x} ${points[0]!.y}`;
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1]!;
+    const curr = points[i]!;
+    const next = points[i + 1]!;
+
+    const v1x = curr.x - prev.x;
+    const v1y = curr.y - prev.y;
+    const v2x = next.x - curr.x;
+    const v2y = next.y - curr.y;
+    const len1 = Math.hypot(v1x, v1y) || 1;
+    const len2 = Math.hypot(v2x, v2y) || 1;
+    const cr = Math.min(r, len1 / 2, len2 / 2);
+
+    const p1x = curr.x - (v1x / len1) * cr;
+    const p1y = curr.y - (v1y / len1) * cr;
+    const p2x = curr.x + (v2x / len2) * cr;
+    const p2y = curr.y + (v2y / len2) * cr;
+
+    d += ` L ${p1x} ${p1y} Q ${curr.x} ${curr.y} ${p2x} ${p2y}`;
+  }
+
+  const last = points[points.length - 1]!;
+  d += ` L ${last.x} ${last.y}`;
+  return d;
 }
 
 /** SVG polyline points string from a path. */

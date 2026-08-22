@@ -4,9 +4,11 @@ import type { RobotModelState } from '../hooks/useRobotModel';
 import { portTypeColor, PORT_TYPE_NAMES } from '../utils/labels';
 import { resolveConnectionPortType, resolveWireColors } from '../utils/wireStyles';
 import {
+  buildSmoothWirePathD,
   computeWireRoutes,
   getDisplayConnections,
-  pathToPolylinePoints,
+  offsetPathPerpendicular,
+  resolveLabelPositions,
   type Point,
   type Rect,
 } from '../utils/wireRouting';
@@ -31,7 +33,7 @@ interface CanvasProps {
 const DEVICE_W = 168;
 const WIRE_DRAG_THRESHOLD_PX = 4;
 
-function WirePolyline({
+function WirePath({
   path,
   color,
   width,
@@ -45,29 +47,12 @@ function WirePolyline({
   offset?: number;
 }) {
   if (path.length < 2) return null;
-  const shifted =
-    offset === 0
-      ? path
-      : path.map((p, i) => {
-          if (i === 0 && path[1]) {
-            const dx = path[1].x - p.x;
-            const dy = path[1].y - p.y;
-            const len = Math.hypot(dx, dy) || 1;
-            return { x: p.x + (-dy / len) * offset, y: p.y + (dx / len) * offset };
-          }
-          if (i === path.length - 1 && path[i - 1]) {
-            const prev = path[i - 1]!;
-            const dx = p.x - prev.x;
-            const dy = p.y - prev.y;
-            const len = Math.hypot(dx, dy) || 1;
-            return { x: p.x + (-dy / len) * offset, y: p.y + (dx / len) * offset };
-          }
-          return p;
-        });
+  const shifted = offsetPathPerpendicular(path, offset);
+  const d = buildSmoothWirePathD(shifted);
 
   return (
-    <polyline
-      points={pathToPolylinePoints(shifted)}
+    <path
+      d={d}
       fill="none"
       stroke={color}
       strokeWidth={width}
@@ -220,60 +205,118 @@ function ConnectionLines({
 
   const canLabelCarriers = buildCanLabelCarriers(model.connections, deviceTypes, registry);
 
+  const deviceObstacles = model.devices
+    .map((d) => getDeviceBounds(d.id))
+    .filter((r): r is Rect => r != null);
+
+  const labelRequests: Array<{ id: string; anchor: Point; text: string; detail?: string }> = [];
+  const routeMeta = new Map<
+    string,
+    {
+      conn: (typeof displayConnections)[0];
+      route: (typeof routes)[0];
+      labelInfo: ReturnType<typeof resolveWireLabel>;
+      fuseInfo: ReturnType<typeof getPdhFuseInfo>;
+      fuseFault: boolean;
+      fuseRating: string;
+      annotation: string;
+      visual: ReturnType<typeof resolveWireColors>;
+      portType: PortType;
+    }
+  >();
+
+  for (const route of routes) {
+    const conn = displayConnections.find((c) => c.id === route.connectionId);
+    if (!conn) continue;
+
+    const srcDevice = model.devices.find((d) => d.id === conn.sourceDevice);
+    const tgtDevice = model.devices.find((d) => d.id === conn.targetDevice);
+    const srcType = srcDevice?.type ?? '';
+    const tgtType = tgtDevice?.type ?? '';
+    const portType =
+      resolveConnectionPortType(registry, conn.sourceDevice, srcType, conn.sourcePort) ??
+      PortType.POWER;
+    const visual = resolveWireColors(conn, portType);
+    const fuseInfo = getPdhFuseInfo(
+      portType,
+      srcType,
+      conn.sourcePort,
+      tgtType,
+      conn.targetPort,
+    );
+    const fuseFault = fuseViolationConnectionIds.has(conn.id);
+    const fuseRating = fuseInfo.show
+      ? fuseRatingLabel(getFuseRatingAmps(conn, fuseInfo.port))
+      : '';
+    const wireSim = simulation?.voltage.wireCurrents.find((w) => w.connectionId === conn.id);
+    const annotation = wireAnnotation(conn, srcType, tgtType, portType, wireSim?.gauge);
+    const labelInfo = resolveWireLabel(
+      conn,
+      model,
+      registry,
+      deviceTypes,
+      canLabelCarriers,
+      wireSim?.gauge,
+    );
+
+    routeMeta.set(conn.id, {
+      conn,
+      route,
+      labelInfo,
+      fuseInfo,
+      fuseFault,
+      fuseRating,
+      annotation,
+      visual,
+      portType,
+    });
+
+    if (showWireLabels && labelInfo.show && labelInfo.text) {
+      const detail =
+        labelInfo.detail && labelInfo.detail !== labelInfo.text ? labelInfo.detail : annotation;
+      labelRequests.push({
+        id: conn.id,
+        anchor: {
+          x: route.labelPoint.x,
+          y: route.labelPoint.y - (fuseInfo.show ? 18 : 0),
+        },
+        text: labelInfo.text,
+        detail: detail !== labelInfo.text ? detail : undefined,
+      });
+    }
+  }
+
+  const labelPositions = resolveLabelPositions(labelRequests, deviceObstacles);
+
   return (
     <>
       {routes.map((route) => {
-        const conn = displayConnections.find((c) => c.id === route.connectionId);
-        if (!conn) return null;
+        const meta = routeMeta.get(route.connectionId);
+        if (!meta) return null;
 
-        const srcDevice = model.devices.find((d) => d.id === conn.sourceDevice);
-        const tgtDevice = model.devices.find((d) => d.id === conn.targetDevice);
-        const srcType = srcDevice?.type ?? '';
-        const tgtType = tgtDevice?.type ?? '';
-        const portType =
-          resolveConnectionPortType(registry, conn.sourceDevice, srcType, conn.sourcePort) ??
-          PortType.POWER;
-        const visual = resolveWireColors(conn, portType);
+        const {
+          conn,
+          labelInfo,
+          fuseInfo,
+          fuseFault,
+          fuseRating,
+          annotation,
+          visual,
+        } = meta;
         const isSelected = conn.id === selectedConnectionId;
         const isHighlighted =
           highlightDeviceIds.includes(conn.sourceDevice) ||
           highlightDeviceIds.includes(conn.targetDevice);
         const opacity = isSelected || isHighlighted ? 1 : 0.92;
-        const offset = visual.kind === 'pair' ? 4 : 0;
-        const fuseInfo = getPdhFuseInfo(
-          portType,
-          srcType,
-          conn.sourcePort,
-          tgtType,
-          conn.targetPort,
-        );
-        const fuseFault = fuseViolationConnectionIds.has(conn.id);
-        const fuseRating = fuseInfo.show
-          ? fuseRatingLabel(getFuseRatingAmps(conn, fuseInfo.port))
-          : '';
-        const wireSim = simulation?.voltage.wireCurrents.find((w) => w.connectionId === conn.id);
-        const annotation = wireAnnotation(
-          conn,
-          srcType,
-          tgtType,
-          portType,
-          wireSim?.gauge,
-        );
-        const labelInfo = resolveWireLabel(
-          conn,
-          model,
-          registry,
-          deviceTypes,
-          canLabelCarriers,
-          wireSim?.gauge,
-        );
-        const displayText = labelInfo.text || (showWireLabels ? '' : '');
+        const pairOffset = visual.kind === 'pair' ? 5 : 0;
+        const labelPos = labelPositions.get(conn.id);
+        const displayText = labelInfo.text;
         const displayDetail =
-          showWireLabels && (labelInfo.detail || annotation)
-            ? labelInfo.detail || annotation
-            : showWireLabels
+          labelInfo.detail && labelInfo.detail !== labelInfo.text
+            ? labelInfo.detail
+            : annotation && annotation !== labelInfo.text
               ? annotation
-              : '';
+              : undefined;
 
         return (
           <g
@@ -288,40 +331,39 @@ function ConnectionLines({
           >
             {visual.kind === 'pair' ? (
               <>
-                <WirePolyline path={route.path} color={visual.colors[0]!} width={visual.width} offset={-offset} />
-                <WirePolyline path={route.path} color={visual.colors[1]!} width={visual.width} offset={offset} />
+                <WirePath path={route.path} color={visual.colors[0]!} width={visual.width} offset={-pairOffset} />
+                <WirePath path={route.path} color={visual.colors[1]!} width={visual.width} offset={pairOffset} />
               </>
             ) : (
-              <WirePolyline path={route.path} color={visual.colors[0]!} width={visual.width} />
+              <WirePath path={route.path} color={visual.colors[0]!} width={visual.width} />
             )}
             {fuseInfo.show && (
               <FuseMarker
-                x={route.labelPoint.x}
-                y={route.labelPoint.y}
+                x={route.controlPoint.x}
+                y={route.controlPoint.y}
                 rating={fuseRating}
                 fault={fuseFault}
               />
             )}
             {ampacityConnectionIds.has(conn.id) && (
-              <AmpacityHazardMarker x={route.labelPoint.x} y={route.labelPoint.y} />
+              <AmpacityHazardMarker x={route.controlPoint.x} y={route.controlPoint.y} />
             )}
-            {showWireLabels && labelInfo.show && displayText && (
+            {showWireLabels && labelInfo.show && displayText && labelPos && (
               <WireLabel
-                x={route.labelPoint.x}
-                y={route.labelPoint.y - (fuseInfo.show ? 18 : 0)}
+                x={labelPos.x}
+                y={labelPos.y}
                 text={displayText}
-                detail={displayDetail !== displayText ? displayDetail : undefined}
+                detail={displayDetail}
               />
             )}
-            {isSelected && (
-              <circle
-                className="wire-route-handle"
-                cx={route.labelPoint.x}
-                cy={route.labelPoint.y}
-                r="7"
-                onPointerDown={(e: PointerEvent) => onWaypointDragStart(conn.id, e)}
-              />
-            )}
+            <circle
+              className={`wire-route-handle ${isSelected ? 'selected' : ''}`}
+              cx={route.controlPoint.x}
+              cy={route.controlPoint.y}
+              r={isSelected ? 7 : 5}
+              onPointerDown={(e: PointerEvent) => onWaypointDragStart(conn.id, e)}
+              onClick={(e: { stopPropagation(): void }) => e.stopPropagation()}
+            />
             <title>
               {visual.label}: {conn.sourceDevice}.{conn.sourcePort} → {conn.targetDevice}.
               {conn.targetPort}
@@ -695,7 +737,7 @@ export function Canvas({ state }: CanvasProps) {
       )}
       {selectedConnectionId && !pendingPort && (
         <div className="canvas-hint">
-          Connection selected — drag the orange handle to reroute, or edit in properties
+          Drag any orange handle to shape a wire, or edit properties for the selected connection
         </div>
       )}
       {model.devices.length === 0 && (
