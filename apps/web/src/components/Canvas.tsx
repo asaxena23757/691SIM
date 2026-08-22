@@ -7,7 +7,7 @@ import {
   buildSmoothWirePathD,
   computeWireRoutes,
   getDisplayConnections,
-  offsetPathPerpendicular,
+  offsetManhattanPath,
   resolveLabelPositions,
   type Point,
   type Rect,
@@ -47,7 +47,7 @@ function WirePath({
   offset?: number;
 }) {
   if (path.length < 2) return null;
-  const shifted = offsetPathPerpendicular(path, offset);
+  const shifted = offsetManhattanPath(path, offset);
   const d = buildSmoothWirePathD(shifted);
 
   return (

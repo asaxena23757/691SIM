@@ -60,7 +60,7 @@ const LANE_SPACING = 26;
 const MIN_WIRE_GAP = 16;
 const OBSTACLE_MARGIN = 10;
 const ALIGN_THRESHOLD = 10;
-const CORNER_RADIUS = 0;
+const CORNER_RADIUS = 8;
 const STUB_LENGTH = 28;
 
 export type DeviceSide = 'top' | 'bottom' | 'left' | 'right';
@@ -110,6 +110,73 @@ function polylineLength(points: Point[]): number {
 
 function pointsEqual(a: Point, b: Point, eps = 0.5): boolean {
   return Math.abs(a.x - b.x) < eps && Math.abs(a.y - b.y) < eps;
+}
+
+/** Force path segments to be axis-aligned (fix diagonal artifacts). */
+export function snapOrthogonalPath(path: Point[]): Point[] {
+  if (path.length < 2) return path;
+
+  const snapped = path.map((p) => ({ x: Math.round(p.x), y: Math.round(p.y) }));
+  const out: Point[] = [snapped[0]!];
+
+  for (let i = 1; i < snapped.length; i++) {
+    const prev = out[out.length - 1]!;
+    const curr = snapped[i]!;
+    const dx = Math.abs(prev.x - curr.x);
+    const dy = Math.abs(prev.y - curr.y);
+
+    if (dx > 0.5 && dy > 0.5) {
+      out.push({ x: curr.x, y: prev.y });
+    }
+    if (!pointsEqual(out[out.length - 1]!, curr)) {
+      out.push(curr);
+    }
+  }
+
+  return simplifyPath(out);
+}
+
+function offsetSegmentEndpoint(a: Point, b: Point, t: 0 | 1, offset: number): Point {
+  const p = t === 0 ? a : b;
+  if (Math.abs(a.y - b.y) < 0.5) return { x: p.x, y: p.y + offset };
+  if (Math.abs(a.x - b.x) < 0.5) return { x: p.x + offset, y: p.y };
+  return p;
+}
+
+/** Parallel-offset a Manhattan path without introducing diagonal segments. */
+export function offsetManhattanPath(path: Point[], offset: number): Point[] {
+  if (offset === 0 || path.length < 2) return snapOrthogonalPath(path);
+
+  const orth = snapOrthogonalPath(path);
+  const out: Point[] = [];
+
+  for (let i = 0; i < orth.length - 1; i++) {
+    const a = orth[i]!;
+    const b = orth[i + 1]!;
+    const start = offsetSegmentEndpoint(a, b, 0, offset);
+    const end = offsetSegmentEndpoint(a, b, 1, offset);
+
+    if (out.length === 0) {
+      out.push(start, end);
+      continue;
+    }
+
+    const prev = out[out.length - 1]!;
+    if (pointsEqual(prev, start)) {
+      out.push(end);
+      continue;
+    }
+
+    const corner = {
+      x: Math.abs(a.x - b.x) < 0.5 ? start.x : prev.x,
+      y: Math.abs(a.y - b.y) < 0.5 ? start.y : prev.y,
+    };
+    if (!pointsEqual(prev, corner)) out.push(corner);
+    if (!pointsEqual(corner, start) && !pointsEqual(corner, end)) out.push(start);
+    out.push(end);
+  }
+
+  return simplifyPath(out);
 }
 
 /** Remove duplicate and collinear points. */
@@ -315,11 +382,9 @@ export function manhattanRoute(
   const corridor = autoOrthogonalPath(startExit, endExit, laneOffset, obstacles);
   const fromEnter = connectPortToEdge(endExit, endPort);
 
-  const path = simplifyPath([
-    ...toExit,
-    ...corridor.slice(1),
-    ...fromEnter.slice(1),
-  ]);
+  const path = snapOrthogonalPath(
+    simplifyPath([...toExit, ...corridor.slice(1), ...fromEnter.slice(1)]),
+  );
 
   return {
     path,
@@ -358,6 +423,7 @@ function rerouteManhattan(route: RoutedSegment, laneOffset: number, bundleSpread
   route.controlPoint = controlPointForRoute(route.path, route.waypoints, route.connectionId);
   route.fusePoint = fusePointForRoute(route.path);
   route.labelPoint = labelPointOnPath(route.path);
+  route.path = snapOrthogonalPath(route.path);
 }
 
 /**
@@ -653,7 +719,11 @@ export function computeWireRoutes(
               allObstacles,
             );
 
-      const path = routed.path;
+      const path = snapOrthogonalPath(
+        waypoints.length > 0
+          ? simplifyPath([startPort, ...waypoints, endPort])
+          : routed.path,
+      );
 
       routes.push({
         connectionId: conn.id,
@@ -696,17 +766,9 @@ export function offsetLineEndpoints(
   };
 }
 
-/** Perpendicular offset for paired wire rendering. */
+/** @deprecated Use offsetManhattanPath for orthogonal routes. */
 export function offsetPathPerpendicular(path: Point[], offset: number): Point[] {
-  if (offset === 0 || path.length < 2) return path;
-  return path.map((p, i) => {
-    const prev = path[i - 1] ?? p;
-    const next = path[i + 1] ?? p;
-    const dx = next.x - prev.x;
-    const dy = next.y - prev.y;
-    const len = Math.hypot(dx, dy) || 1;
-    return { x: p.x + (-dy / len) * offset, y: p.y + (dx / len) * offset };
-  });
+  return offsetManhattanPath(path, offset);
 }
 
 /**

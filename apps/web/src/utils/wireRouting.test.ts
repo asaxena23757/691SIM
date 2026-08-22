@@ -7,10 +7,12 @@ import {
   fusePointForRoute,
   manhattanRoute,
   nearestPointOnPath,
+  offsetManhattanPath,
   pointOnPathAtT,
   preferredDeviceSides,
   resolveLabelPositions,
   simplifyPath,
+  snapOrthogonalPath,
   type Point,
   type Rect,
 } from './wireRouting';
@@ -51,18 +53,18 @@ describe('autoOrthogonalPath', () => {
 });
 
 describe('buildSmoothWirePathD', () => {
-  it('renders strict Manhattan paths as straight segments', () => {
+  it('renders Manhattan paths with slightly rounded corners by default', () => {
     const d = buildSmoothWirePathD([
       { x: 0, y: 0 },
       { x: 50, y: 0 },
       { x: 50, y: 80 },
       { x: 100, y: 80 },
     ]);
-    expect(d).not.toContain('Q');
-    expect(d).toContain('L 50 0');
+    expect(d).toContain('Q');
+    expect(d.startsWith('M 0 0')).toBe(true);
   });
 
-  it('rounds corners when radius is enabled', () => {
+  it('renders sharp corners when radius is zero', () => {
     const d = buildSmoothWirePathD(
       [
         { x: 0, y: 0 },
@@ -70,9 +72,40 @@ describe('buildSmoothWirePathD', () => {
         { x: 50, y: 80 },
         { x: 100, y: 80 },
       ],
-      16,
+      0,
     );
-    expect(d).toContain('Q');
+    expect(d).not.toContain('Q');
+  });
+});
+
+describe('snapOrthogonalPath', () => {
+  it('splits diagonal segments into horizontal and vertical parts', () => {
+    const snapped = snapOrthogonalPath([
+      { x: 0, y: 0 },
+      { x: 100, y: 80 },
+    ]);
+    expect(snapped.length).toBeGreaterThanOrEqual(3);
+    for (let i = 1; i < snapped.length; i++) {
+      const a = snapped[i - 1]!;
+      const b = snapped[i]!;
+      expect(Math.abs(a.x - b.x) < 0.5 || Math.abs(a.y - b.y) < 0.5).toBe(true);
+    }
+  });
+});
+
+describe('offsetManhattanPath', () => {
+  it('keeps paired wire offsets axis-aligned', () => {
+    const base = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 100, y: 80 },
+    ];
+    const offset = offsetManhattanPath(base, 5);
+    for (let i = 1; i < offset.length; i++) {
+      const a = offset[i - 1]!;
+      const b = offset[i]!;
+      expect(Math.abs(a.x - b.x) < 0.5 || Math.abs(a.y - b.y) < 0.5).toBe(true);
+    }
   });
 });
 
