@@ -5,8 +5,10 @@ import {
   computeWireRoutes,
   controlPointForRoute,
   fusePointForRoute,
+  manhattanRoute,
   nearestPointOnPath,
   pointOnPathAtT,
+  preferredDeviceSides,
   resolveLabelPositions,
   simplifyPath,
   type Point,
@@ -49,24 +51,89 @@ describe('autoOrthogonalPath', () => {
 });
 
 describe('buildSmoothWirePathD', () => {
-  it('rounds corners for three-point paths on the wire', () => {
-    const d = buildSmoothWirePathD([
-      { x: 0, y: 0 },
-      { x: 50, y: 80 },
-      { x: 100, y: 0 },
-    ]);
-    expect(d).toContain('Q');
-    expect(d).not.toMatch(/Q 50 80 100 0/);
-  });
-
-  it('rounds corners for orthogonal paths', () => {
+  it('renders strict Manhattan paths as straight segments', () => {
     const d = buildSmoothWirePathD([
       { x: 0, y: 0 },
       { x: 50, y: 0 },
       { x: 50, y: 80 },
       { x: 100, y: 80 },
     ]);
+    expect(d).not.toContain('Q');
+    expect(d).toContain('L 50 0');
+  });
+
+  it('rounds corners when radius is enabled', () => {
+    const d = buildSmoothWirePathD(
+      [
+        { x: 0, y: 0 },
+        { x: 50, y: 0 },
+        { x: 50, y: 80 },
+        { x: 100, y: 80 },
+      ],
+      16,
+    );
     expect(d).toContain('Q');
+  });
+});
+
+describe('preferredDeviceSides', () => {
+  it('exits right and enters left when target is to the right', () => {
+    const src = { x: 0, y: 0, width: 100, height: 80 };
+    const tgt = { x: 200, y: 0, width: 100, height: 80 };
+    expect(preferredDeviceSides(src, tgt)).toEqual({ exit: 'right', enter: 'left' });
+  });
+
+  it('exits bottom and enters top when target is below', () => {
+    const src = { x: 0, y: 0, width: 100, height: 80 };
+    const tgt = { x: 0, y: 150, width: 100, height: 80 };
+    expect(preferredDeviceSides(src, tgt)).toEqual({ exit: 'bottom', enter: 'top' });
+  });
+});
+
+describe('manhattanRoute', () => {
+  const srcBounds: Rect = { x: 0, y: 0, width: 168, height: 120 };
+  const tgtBounds: Rect = { x: 280, y: 0, width: 168, height: 120 };
+
+  it('routes orthogonally through device edges on different sides', () => {
+    const { path, context } = manhattanRoute(
+      { x: 84, y: 130 },
+      { x: 364, y: 160 },
+      srcBounds,
+      tgtBounds,
+      0,
+      0,
+    );
+    expect(context?.exitSide).toBe('right');
+    expect(context?.enterSide).toBe('left');
+    expect(path.length).toBeGreaterThanOrEqual(2);
+    for (let i = 1; i < path.length; i++) {
+      const a = path[i - 1]!;
+      const b = path[i]!;
+      const orth = Math.abs(a.x - b.x) < 1 || Math.abs(a.y - b.y) < 1;
+      expect(orth).toBe(true);
+    }
+  });
+
+  it('spreads bundled wires apart on the entry edge', () => {
+    const a = manhattanRoute(
+      { x: 84, y: 130 },
+      { x: 364, y: 130 },
+      srcBounds,
+      tgtBounds,
+      0,
+      -26,
+    );
+    const b = manhattanRoute(
+      { x: 84, y: 130 },
+      { x: 364, y: 130 },
+      srcBounds,
+      tgtBounds,
+      0,
+      26,
+    );
+    const midA = a.path[Math.floor(a.path.length / 2)]!;
+    const midB = b.path[Math.floor(b.path.length / 2)]!;
+    expect(Math.hypot(midA.x - midB.x, midA.y - midB.y)).toBeGreaterThan(20);
   });
 });
 
@@ -142,9 +209,18 @@ describe('computeWireRoutes', () => {
     return map[id] ?? { x: 0, y: 0 };
   };
 
+  const getBounds = (id: string): Rect => {
+    const map: Record<string, Rect> = {
+      a: { x: 0, y: 0, width: 168, height: 120 },
+      b: { x: 220, y: 0, width: 168, height: 120 },
+      c: { x: 100, y: 180, width: 168, height: 120 },
+    };
+    return map[id] ?? { x: 0, y: 0, width: 168, height: 120 };
+  };
+
   it('auto-routes multiple wires on different corridors', () => {
     const connections = [conn('c1', 'a', 'b'), conn('c2', 'a', 'c')];
-    const routes = computeWireRoutes(connections, getCenter);
+    const routes = computeWireRoutes(connections, getCenter, undefined, undefined, undefined, getBounds);
     expect(routes).toHaveLength(2);
     for (const route of routes) {
       expect(route.path.length).toBeGreaterThanOrEqual(2);

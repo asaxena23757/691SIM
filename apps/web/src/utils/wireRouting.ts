@@ -21,11 +21,20 @@ export interface RoutedSegment {
   bundleOffset: number;
   waypoints: Point[];
   path: Point[];
-  /** Draggable handle — always lies on the wire path, offset from fuse. */
   controlPoint: Point;
-  /** Fuse marker position (path midpoint). */
   fusePoint: Point;
   labelPoint: Point;
+  routeContext?: ManhattanRouteContext;
+}
+
+export interface ManhattanRouteContext {
+  srcBounds: Rect;
+  tgtBounds: Rect;
+  exitSide: DeviceSide;
+  enterSide: DeviceSide;
+  laneOffset: number;
+  bundleSpread: number;
+  obstacles: Rect[];
 }
 
 export interface LabelPlacementRequest {
@@ -46,12 +55,15 @@ export type PortPositionLookup = (
 
 export type DeviceBoundsLookup = (deviceId: string) => Rect | undefined;
 
-const BUNDLE_SPACING = 18;
-const LANE_SPACING = 18;
-const MIN_WIRE_GAP = 8;
+const BUNDLE_SPACING = 26;
+const LANE_SPACING = 26;
+const MIN_WIRE_GAP = 16;
 const OBSTACLE_MARGIN = 10;
 const ALIGN_THRESHOLD = 10;
-const CORNER_RADIUS = 16;
+const CORNER_RADIUS = 0;
+const STUB_LENGTH = 28;
+
+export type DeviceSide = 'top' | 'bottom' | 'left' | 'right';
 
 /** Connections drawn on the canvas (ground is implied by the red/black 12V pair). */
 export function getDisplayConnections(
@@ -234,6 +246,120 @@ function nudgeCandidate(base: number, attempt: number, step: number): number {
   return attempt % 2 === 1 ? base + magnitude : base - magnitude;
 }
 
+/** Pick exit/enter sides so the wire approaches each device from different edges when possible. */
+export function preferredDeviceSides(srcBounds: Rect, tgtBounds: Rect): {
+  exit: DeviceSide;
+  enter: DeviceSide;
+} {
+  const srcCx = srcBounds.x + srcBounds.width / 2;
+  const srcCy = srcBounds.y + srcBounds.height / 2;
+  const tgtCx = tgtBounds.x + tgtBounds.width / 2;
+  const tgtCy = tgtBounds.y + tgtBounds.height / 2;
+  const dx = tgtCx - srcCx;
+  const dy = tgtCy - srcCy;
+
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx >= 0 ? { exit: 'right', enter: 'left' } : { exit: 'left', enter: 'right' };
+  }
+  return dy >= 0 ? { exit: 'bottom', enter: 'top' } : { exit: 'top', enter: 'bottom' };
+}
+
+/** Point outside the device on the given side, with spread for bundled wires. */
+export function edgeExitPoint(
+  port: Point,
+  bounds: Rect,
+  side: DeviceSide,
+  spread: number,
+): Point {
+  switch (side) {
+    case 'right':
+      return { x: bounds.x + bounds.width + STUB_LENGTH, y: port.y + spread };
+    case 'left':
+      return { x: bounds.x - STUB_LENGTH, y: port.y + spread };
+    case 'bottom':
+      return { x: port.x + spread, y: bounds.y + bounds.height + STUB_LENGTH };
+    case 'top':
+      return { x: port.x + spread, y: bounds.y - STUB_LENGTH };
+  }
+}
+
+function connectPortToEdge(port: Point, edge: Point): Point[] {
+  if (pointsEqual(port, edge)) return [port];
+  if (Math.abs(port.x - edge.x) < 1) return [port, edge];
+  if (Math.abs(port.y - edge.y) < 1) return [port, edge];
+  return simplifyPath([port, { x: edge.x, y: port.y }, edge]);
+}
+
+/**
+ * Manhattan route: port → device edge → orthogonal corridor → opposite edge → port.
+ * Wires leave and enter devices on different sides when geometry allows.
+ */
+export function manhattanRoute(
+  startPort: Point,
+  endPort: Point,
+  srcBounds: Rect | undefined,
+  tgtBounds: Rect | undefined,
+  laneOffset: number,
+  bundleSpread: number,
+  obstacles: Rect[] = [],
+): { path: Point[]; context?: ManhattanRouteContext } {
+  if (!srcBounds || !tgtBounds) {
+    return { path: autoOrthogonalPath(startPort, endPort, laneOffset, obstacles) };
+  }
+
+  const { exit: exitSide, enter: enterSide } = preferredDeviceSides(srcBounds, tgtBounds);
+  const startExit = edgeExitPoint(startPort, srcBounds, exitSide, bundleSpread);
+  const endExit = edgeExitPoint(endPort, tgtBounds, enterSide, bundleSpread);
+
+  const toExit = connectPortToEdge(startPort, startExit);
+  const corridor = autoOrthogonalPath(startExit, endExit, laneOffset, obstacles);
+  const fromEnter = connectPortToEdge(endExit, endPort);
+
+  const path = simplifyPath([
+    ...toExit,
+    ...corridor.slice(1),
+    ...fromEnter.slice(1),
+  ]);
+
+  return {
+    path,
+    context: {
+      srcBounds,
+      tgtBounds,
+      exitSide,
+      enterSide,
+      laneOffset,
+      bundleSpread,
+      obstacles,
+    },
+  };
+}
+
+function rerouteManhattan(route: RoutedSegment, laneOffset: number, bundleSpread: number): void {
+  const ctx = route.routeContext;
+  if (!ctx) {
+    const path = autoOrthogonalPath(route.start, route.end, laneOffset, []);
+    route.path = path;
+    route.bundleOffset = bundleSpread;
+  } else {
+    const { path, context } = manhattanRoute(
+      route.start,
+      route.end,
+      ctx.srcBounds,
+      ctx.tgtBounds,
+      laneOffset,
+      bundleSpread,
+      ctx.obstacles,
+    );
+    route.path = path;
+    route.routeContext = context;
+    route.bundleOffset = bundleSpread;
+  }
+  route.controlPoint = controlPointForRoute(route.path, route.waypoints, route.connectionId);
+  route.fusePoint = fusePointForRoute(route.path);
+  route.labelPoint = labelPointOnPath(route.path);
+}
+
 /**
  * Orthogonal autoroute: horizontal-vertical or vertical-horizontal with lane offset
  * so parallel wires do not fully overlap.
@@ -335,11 +461,11 @@ function applyCorridorDeconfliction(routes: RoutedSegment[]): void {
       if (!route || route.waypoints.length > 0) return;
       const extra = (index - (sorted.length - 1) / 2) * LANE_SPACING;
       if (Math.abs(extra) < 0.1) return;
-      const rerouted = autoOrthogonalPath(route.start, route.end, route.bundleOffset + extra, []);
-      route.path = rerouted;
-      route.controlPoint = controlPointForRoute(rerouted, route.waypoints, route.connectionId);
-      route.fusePoint = fusePointForRoute(rerouted);
-      route.labelPoint = labelPointOnPath(rerouted);
+      rerouteManhattan(
+        route,
+        (route.routeContext?.laneOffset ?? 0) + extra,
+        route.bundleOffset + extra,
+      );
     });
   }
 }
@@ -357,32 +483,14 @@ function applyWireSeparation(routes: RoutedSegment[]): void {
       const dist = Math.hypot(aMid.x - bMid.x, aMid.y - bMid.y);
       if (dist >= MIN_WIRE_GAP * 2 || dist < 0.01) continue;
 
-      const push = ((MIN_WIRE_GAP * 2 - dist) / 2) * 1.1;
-      const nx = (bMid.x - aMid.x) / dist;
-      const ny = (bMid.y - aMid.y) / dist;
+      const push = ((MIN_WIRE_GAP * 2 - dist) / 2) * 1.2;
+      const laneA = (a.routeContext?.laneOffset ?? a.bundleOffset) - push;
+      const laneB = (b.routeContext?.laneOffset ?? b.bundleOffset) + push;
+      const spreadA = a.bundleOffset - push;
+      const spreadB = b.bundleOffset + push;
 
-      const rerouteA = autoOrthogonalPath(
-        a.start,
-        a.end,
-        a.bundleOffset - nx * push,
-        [],
-      );
-      const rerouteB = autoOrthogonalPath(
-        b.start,
-        b.end,
-        b.bundleOffset + nx * push,
-        [],
-      );
-
-      a.path = rerouteA;
-      a.controlPoint = controlPointForRoute(rerouteA, a.waypoints, a.connectionId);
-      a.fusePoint = fusePointForRoute(rerouteA);
-      a.labelPoint = labelPointOnPath(rerouteA);
-
-      b.path = rerouteB;
-      b.controlPoint = controlPointForRoute(rerouteB, b.waypoints, b.connectionId);
-      b.fusePoint = fusePointForRoute(rerouteB);
-      b.labelPoint = labelPointOnPath(rerouteB);
+      rerouteManhattan(a, laneA, spreadA);
+      rerouteManhattan(b, laneB, spreadB);
     }
   }
 }
@@ -506,18 +614,20 @@ export function computeWireRoutes(
     const count = sorted.length;
 
     sorted.forEach((conn, index) => {
-      const start =
+      const startPort =
         getPortPosition?.(conn.sourceDevice, conn.sourcePort) ??
         getCenter(conn.sourceDevice);
-      const end =
+      const endPort =
         getPortPosition?.(conn.targetDevice, conn.targetPort) ?? getCenter(conn.targetDevice);
-      const bundleOffset = count === 1 ? 0 : (index - (count - 1) / 2) * BUNDLE_SPACING;
-      const { start: s, end: e } = offsetLineEndpoints(start, end, bundleOffset);
+      const bundleSpread = count === 1 ? 0 : (index - (count - 1) / 2) * BUNDLE_SPACING;
       const waypoints = parseWaypoints(conn);
 
       const gi = globalIndex.get(conn.id) ?? 0;
       const laneOffset =
-        (gi - (globalCount - 1) / 2) * LANE_SPACING + bundleOffset * 0.35;
+        (gi - (globalCount - 1) / 2) * LANE_SPACING + bundleSpread * 0.35;
+
+      const srcBounds = getDeviceBounds?.(conn.sourceDevice);
+      const tgtBounds = getDeviceBounds?.(conn.targetDevice);
 
       const allObstacles =
         getDeviceBounds != null
@@ -527,21 +637,35 @@ export function computeWireRoutes(
               .filter((r): r is Rect => r != null)
           : [];
 
-      const path =
+      const routed =
         waypoints.length > 0
-          ? simplifyPath([s, ...waypoints, e])
-          : autoOrthogonalPath(s, e, laneOffset, allObstacles);
+          ? {
+              path: simplifyPath([startPort, ...waypoints, endPort]),
+              context: undefined as ManhattanRouteContext | undefined,
+            }
+          : manhattanRoute(
+              startPort,
+              endPort,
+              srcBounds,
+              tgtBounds,
+              laneOffset,
+              bundleSpread,
+              allObstacles,
+            );
+
+      const path = routed.path;
 
       routes.push({
         connectionId: conn.id,
-        start: s,
-        end: e,
-        bundleOffset,
+        start: startPort,
+        end: endPort,
+        bundleOffset: bundleSpread,
         waypoints,
         path,
         controlPoint: controlPointForRoute(path, waypoints, conn.id),
         fusePoint: fusePointForRoute(path),
         labelPoint: labelPointOnPath(path),
+        routeContext: routed.context,
       });
     });
   }
@@ -590,6 +714,9 @@ export function offsetPathPerpendicular(path: Point[], offset: number): Point[] 
  */
 export function buildSmoothWirePathD(points: Point[], cornerRadius = CORNER_RADIUS): string {
   if (points.length < 2) return '';
+  if (cornerRadius <= 0) {
+    return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  }
   if (points.length === 2) {
     return `M ${points[0]!.x} ${points[0]!.y} L ${points[1]!.x} ${points[1]!.y}`;
   }
