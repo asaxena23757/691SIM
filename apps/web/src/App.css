@@ -687,29 +687,6 @@
   pointer-events: stroke;
 }
 
-.wire-route-handle {
-  fill: var(--peach-glow);
-  stroke: var(--yale-blue);
-  stroke-width: 2;
-  cursor: grab;
-  pointer-events: all;
-  opacity: 0.72;
-  transition: opacity 0.15s ease, r 0.15s ease;
-}
-
-.connection-group:hover .wire-route-handle,
-.wire-route-handle.selected {
-  opacity: 1;
-}
-
-.wire-route-handle.selected {
-  stroke-width: 2.5;
-}
-
-.wire-route-handle:active {
-  cursor: grabbing;
-}
-
 .port-btn.port-full {
   opacity: 0.45;
   cursor: not-allowed;
