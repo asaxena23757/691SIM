@@ -7,7 +7,6 @@ import {
   buildSmoothWirePathD,
   computeWireRoutes,
   getDisplayConnections,
-  nearestPointOnPath,
   offsetPathPerpendicular,
   resolveLabelPositions,
   type Point,
@@ -160,14 +159,12 @@ interface ConnectionLinesProps {
   state: RobotModelState;
   getPortPosition: (deviceId: string, portId: string) => Point | undefined;
   getDeviceBounds: (deviceId: string) => Rect | undefined;
-  onWaypointDragStart: (connectionId: string, path: Point[], e: PointerEvent) => void;
 }
 
 function ConnectionLines({
   state,
   getPortPosition,
   getDeviceBounds,
-  onWaypointDragStart,
 }: ConnectionLinesProps) {
   const {
     model,
@@ -357,16 +354,6 @@ function ConnectionLines({
                 detail={displayDetail}
               />
             )}
-            <circle
-              className={`wire-route-handle ${isSelected ? 'selected' : ''}`}
-              cx={route.controlPoint.x}
-              cy={route.controlPoint.y}
-              r={isSelected ? 7 : 5}
-              onPointerDown={(e: PointerEvent) =>
-                onWaypointDragStart(conn.id, route.path, e)
-              }
-              onClick={(e: { stopPropagation(): void }) => e.stopPropagation()}
-            />
             <title>
               {visual.label}: {conn.sourceDevice}.{conn.sourcePort} → {conn.targetDevice}.
               {conn.targetPort}
@@ -398,7 +385,6 @@ export function Canvas({ state }: CanvasProps) {
     cancelWire,
     handlePortClick,
     moveDevice,
-    setConnectionWaypoints,
   } = state;
 
   const canvasRef = useRef<HTMLElement>(null);
@@ -455,7 +441,6 @@ export function Canvas({ state }: CanvasProps) {
   const wireFromRef = useRef<{ deviceId: string; portId: string } | null>(null);
   const wireDragActiveRef = useRef(false);
   const wireDragStartRef = useRef<{ x: number; y: number } | null>(null);
-  const waypointDragRef = useRef<{ connectionId: string; path: Point[] } | null>(null);
 
   const canvasPoint = useCallback((clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -486,16 +471,6 @@ export function Canvas({ state }: CanvasProps) {
       }
     },
     [cancelWire, findPortAt, tryConnect],
-  );
-
-  const onWaypointDragStart = useCallback(
-    (connectionId: string, path: Point[], e: PointerEvent) => {
-      e.stopPropagation();
-      (e.currentTarget as SVGElement).setPointerCapture(e.pointerId);
-      waypointDragRef.current = { connectionId, path };
-      setSelectedConnectionId(connectionId);
-    },
-    [setSelectedConnectionId],
   );
 
   const onDevicePointerDown = useCallback(
@@ -541,18 +516,6 @@ export function Canvas({ state }: CanvasProps) {
 
   const onPointerMove = useCallback(
     (e: PointerEvent) => {
-      if (waypointDragRef.current) {
-        const pt = canvasPoint(e.clientX, e.clientY);
-        const { connectionId, path } = waypointDragRef.current;
-        const snapped = nearestPointOnPath(path, pt);
-        const start = path[0]!;
-        const end = path[path.length - 1]!;
-        const nextPath = [start, snapped, end];
-        waypointDragRef.current = { connectionId, path: nextPath };
-        setConnectionWaypoints(connectionId, [snapped]);
-        return;
-      }
-
       if (dragRef.current) {
         const dx = e.clientX - dragRef.current.startX;
         const dy = e.clientY - dragRef.current.startY;
@@ -577,12 +540,11 @@ export function Canvas({ state }: CanvasProps) {
         setDragLine((line) => (line ? { ...line, x2: pt.x, y2: pt.y } : null));
       }
     },
-    [canvasPoint, dragLine, moveDevice, setConnectionWaypoints, startWireFrom],
+    [canvasPoint, dragLine, moveDevice, startWireFrom],
   );
 
   const onPointerUp = useCallback(
     (e: PointerEvent) => {
-      waypointDragRef.current = null;
       dragRef.current = null;
 
       if (wireFromRef.current) {
@@ -709,7 +671,6 @@ export function Canvas({ state }: CanvasProps) {
           state={state}
           getPortPosition={estimatePortPosition}
           getDeviceBounds={estimateDeviceBounds}
-          onWaypointDragStart={onWaypointDragStart}
         />
         {dragLine && (
           <line
@@ -746,7 +707,7 @@ export function Canvas({ state }: CanvasProps) {
       )}
       {selectedConnectionId && !pendingPort && (
         <div className="canvas-hint">
-          Drag any orange handle to shape a wire, or edit properties for the selected connection
+          Connection selected — edit label, color, and wire properties in the panel
         </div>
       )}
       {model.devices.length === 0 && (
