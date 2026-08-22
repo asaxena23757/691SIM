@@ -4,6 +4,9 @@ import {
   buildSmoothWirePathD,
   computeWireRoutes,
   controlPointForRoute,
+  fusePointForRoute,
+  nearestPointOnPath,
+  pointOnPathAtT,
   resolveLabelPositions,
   simplifyPath,
   type Point,
@@ -46,13 +49,14 @@ describe('autoOrthogonalPath', () => {
 });
 
 describe('buildSmoothWirePathD', () => {
-  it('uses quadratic curve for three-point paths', () => {
+  it('rounds corners for three-point paths on the wire', () => {
     const d = buildSmoothWirePathD([
       { x: 0, y: 0 },
       { x: 50, y: 80 },
       { x: 100, y: 0 },
     ]);
-    expect(d).toContain('Q 50 80');
+    expect(d).toContain('Q');
+    expect(d).not.toMatch(/Q 50 80 100 0/);
   });
 
   it('rounds corners for orthogonal paths', () => {
@@ -67,9 +71,52 @@ describe('buildSmoothWirePathD', () => {
 });
 
 describe('controlPointForRoute', () => {
-  it('returns the user waypoint when present', () => {
-    const wp = { x: 40, y: 40 };
-    expect(controlPointForRoute([{ x: 0, y: 0 }, wp, { x: 100, y: 0 }], [wp])).toEqual(wp);
+  it('returns the user waypoint projected onto the path', () => {
+    const path = [
+      { x: 0, y: 0 },
+      { x: 50, y: 0 },
+      { x: 50, y: 100 },
+      { x: 100, y: 100 },
+    ];
+    const wp = { x: 48, y: 2 };
+    const cp = controlPointForRoute(path, [wp], 'c1');
+    expect(Math.hypot(cp.x - 50, cp.y - 0)).toBeLessThan(5);
+  });
+
+  it('places auto handle away from fuse midpoint', () => {
+    const path = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+    ];
+    const cp = controlPointForRoute(path, [], 'c1');
+    const fuse = fusePointForRoute(path);
+    expect(Math.hypot(cp.x - fuse.x, cp.y - fuse.y)).toBeGreaterThan(10);
+  });
+});
+
+describe('nearestPointOnPath', () => {
+  it('snaps cursor to the closest point on the wire', () => {
+    const path = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+    ];
+    const snapped = nearestPointOnPath(path, { x: 50, y: 40 });
+    expect(snapped.y).toBeCloseTo(0, 0);
+    expect(snapped.x).toBeCloseTo(50, 0);
+  });
+});
+
+describe('pointOnPathAtT', () => {
+  it('returns midpoint at t=0.5', () => {
+    const mid = pointOnPathAtT(
+      [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+      ],
+      0.5,
+    );
+    expect(mid.x).toBeCloseTo(50, 0);
+    expect(mid.y).toBeCloseTo(0, 0);
   });
 });
 
@@ -120,6 +167,7 @@ describe('computeWireRoutes', () => {
     const routes = computeWireRoutes(connections, getCenter);
     expect(routes[0]!.path.some((p) => p.x === 150 && p.y === 120)).toBe(true);
     expect(routes[0]!.controlPoint).toEqual({ x: 150, y: 120 });
+    expect(routes[0]!.fusePoint).toBeDefined();
   });
 });
 
