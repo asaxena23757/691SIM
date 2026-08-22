@@ -8,6 +8,7 @@ import {
   getDisplayConnections,
   pathToPolylinePoints,
   type Point,
+  type Rect,
 } from '../utils/wireRouting';
 import {
   getVisiblePorts,
@@ -172,10 +173,16 @@ function WireLabel({
 interface ConnectionLinesProps {
   state: RobotModelState;
   getPortPosition: (deviceId: string, portId: string) => Point | undefined;
+  getDeviceBounds: (deviceId: string) => Rect | undefined;
   onWaypointDragStart: (connectionId: string, e: PointerEvent) => void;
 }
 
-function ConnectionLines({ state, getPortPosition, onWaypointDragStart }: ConnectionLinesProps) {
+function ConnectionLines({
+  state,
+  getPortPosition,
+  getDeviceBounds,
+  onWaypointDragStart,
+}: ConnectionLinesProps) {
   const {
     model,
     registry,
@@ -208,6 +215,7 @@ function ConnectionLines({ state, getPortPosition, onWaypointDragStart }: Connec
     getPortPositionInner,
     registry,
     deviceTypes,
+    getDeviceBounds,
   );
 
   const canLabelCarriers = buildCanLabelCarriers(model.connections, deviceTypes, registry);
@@ -368,6 +376,24 @@ export function Canvas({ state }: CanvasProps) {
       return {
         x: (device.position?.x ?? 0) + 18 + col * 50,
         y: (device.position?.y ?? 0) + 106 + row * 22,
+      };
+    },
+    [deviceTypes, model.connections, model.devices, registry],
+  );
+
+  const estimateDeviceBounds = useCallback(
+    (deviceId: string): Rect | undefined => {
+      const device = model.devices.find((d) => d.id === deviceId);
+      const type = deviceTypes.get(deviceId);
+      const def = type ? registry.get(type) : undefined;
+      if (!device || !def) return undefined;
+      const visible = getVisiblePorts(deviceId, def, model.connections);
+      const rows = Math.max(1, Math.ceil(visible.length / 3));
+      return {
+        x: device.position?.x ?? 0,
+        y: device.position?.y ?? 0,
+        width: DEVICE_W,
+        height: 106 + rows * 22 + 12,
       };
     },
     [deviceTypes, model.connections, model.devices, registry],
@@ -631,6 +657,7 @@ export function Canvas({ state }: CanvasProps) {
         <ConnectionLines
           state={state}
           getPortPosition={estimatePortPosition}
+          getDeviceBounds={estimateDeviceBounds}
           onWaypointDragStart={onWaypointDragStart}
         />
         {dragLine && (
