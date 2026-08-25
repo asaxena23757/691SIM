@@ -105,9 +105,9 @@ export default function App() {
           [
             ['editor', 'Editor'],
             ['simulation', 'Simulation'],
-            ['registry', 'Device Registry'],
+            ['registry', 'Registry'],
             ['json', 'JSON'],
-            ['graph', 'Graph Analysis'],
+            ['graph', 'Graph'],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -125,10 +125,9 @@ export default function App() {
       {tab === 'editor' && (
         <div className="editor-layout">
           {state.simulation?.voltage.brownoutRisk && (
-            <div className="sim-alert sim-alert-danger sim-banner">
-              ⚠ ROBORIO BROWNOUT RISK DETECTED — system sags to{' '}
-              {state.simulation.voltage.systemVoltage.toFixed(2)} V. Open the Simulation tab for
-              details.
+            <div className="sim-alert sim-alert-danger sim-banner" role="alert">
+              RoboRIO brownout risk — system sags to{' '}
+              {state.simulation.voltage.systemVoltage.toFixed(2)} V. Open Simulation for details.
             </div>
           )}
           <WireLegend
