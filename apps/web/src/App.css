@@ -715,12 +715,14 @@
   pointer-events: none;
 }
 
+/* Wires stay below the devices so a wire ending on a terminal never steals
+   that terminal's clicks. The in-progress drag line gets its own layer on top. */
 .canvas-wires {
   z-index: 0;
 }
 
-.canvas-wiring .canvas-wires {
-  z-index: 2;
+.canvas-draglayer {
+  z-index: 3;
 }
 
 .connection-group {
@@ -767,50 +769,104 @@
   pointer-events: stroke;
 }
 
+/* A device on the canvas is the hardware diagram itself -- no card chrome --
+   with its terminals exposed as dots that wires attach to. */
 .device-node {
   position: absolute;
-  width: 168px;
-  min-height: 130px;
-  background: var(--surface-card);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: var(--space-2xs);
   user-select: none;
   z-index: 1;
-  box-shadow: var(--shadow-device);
-  transition:
-    box-shadow var(--duration-fast) ease,
-    border-color var(--duration-fast) ease,
-    transform var(--duration-fast) var(--ease-out);
 }
 
-.device-node:hover {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-  transform: translateY(-1px);
-}
-
-.device-drag-handle {
+.device-body {
+  position: relative;
   cursor: grab;
-  margin: calc(-1 * var(--space-2xs)) calc(-1 * var(--space-2xs)) 0;
-  padding: var(--space-2xs) var(--space-2xs) 0;
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border-radius: var(--radius-sm);
+  outline: 1.5px solid transparent;
+  transition: outline-color var(--duration-fast) ease;
 }
 
-.device-drag-handle:active {
+.device-body:active {
   cursor: grabbing;
 }
 
-.device-node.device-error {
-  border: 1.5px dashed var(--danger);
+.device-node:hover .device-body {
+  outline-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
-.device-node.selected {
-  border-color: var(--accent);
+.device-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.device-caption {
+  margin-top: 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  pointer-events: none;
+}
+
+.device-node.device-error .device-body {
+  outline: 1.5px dashed var(--danger);
+}
+
+.device-node.selected .device-body {
+  outline-color: var(--accent);
   box-shadow: var(--shadow-selected);
 }
 
-.device-node.highlighted {
+.device-node.highlighted .device-body {
   box-shadow: var(--shadow-highlighted);
+}
+
+/* Terminal dots, positioned at the real solder points on the diagram. */
+.port-dot {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid rgba(8, 12, 16, 0.75);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+  cursor: crosshair;
+  z-index: 2;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) ease;
+}
+
+.port-dot:hover:not(:disabled) {
+  transform: translate(-50%, -50%) scale(1.45);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.port-dot.disconnected {
+  opacity: 0.9;
+}
+
+.port-dot.pending {
+  transform: translate(-50%, -50%) scale(1.5);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.port-dot.compatible {
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 0 10px 2px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.port-dot.port-full {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 .device-title {

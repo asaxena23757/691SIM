@@ -1,5 +1,10 @@
 import { useCallback, useRef, useState, type PointerEvent } from 'react';
-import { PortType, type DeviceInstance } from '@691sim/core';
+import {
+  PortType,
+  type DeviceDefinition,
+  type DeviceInstance,
+  type Port,
+} from '@691sim/core';
 import type { RobotModelState } from '../hooks/useRobotModel';
 import { portTypeColor, PORT_TYPE_NAMES } from '../utils/labels';
 import { resolveConnectionPortType, resolveWireColors } from '../utils/wireStyles';
@@ -12,26 +17,30 @@ import {
   type Point,
   type Rect,
 } from '../utils/wireRouting';
-import {
-  getVisiblePorts,
-  countHiddenPorts,
-  isPortConnected,
-  portDisplayLabel,
-} from '../utils/visiblePorts';
+import { isPortConnected, portDisplayLabel } from '../utils/visiblePorts';
+import { deviceLayout, portOffset } from '../utils/devicePorts';
+import { deviceImage } from '../utils/deviceImages';
 import {
   isCompatibleTarget,
   isPortAtCapacity,
 } from '../utils/connectionRules';
 import { getPdhFuseInfo, getFuseRatingAmps, fuseRatingLabel } from '../utils/fuses';
 import { buildCanLabelCarriers, resolveWireLabel, wireAnnotation } from '../utils/wireLabels';
-import { DeviceIcon } from './DeviceIcon';
-
 interface CanvasProps {
   state: RobotModelState;
 }
 
 const DEVICE_W = 168;
 const WIRE_DRAG_THRESHOLD_PX = 4;
+
+/**
+ * Ports that get a dot on the diagram. Ground is excluded because the app
+ * auto-pairs a ground return with every power wire and draws the pair as one
+ * two-tone run, so grounds are never wired by hand.
+ */
+function canvasPorts(def: DeviceDefinition): Port[] {
+  return def.ports.filter((port) => port.type !== PortType.GROUND);
+}
 
 function WirePath({
   path,
@@ -48,7 +57,8 @@ function WirePath({
 }) {
   if (path.length < 2) return null;
   const shifted = offsetManhattanPath(path, offset);
-  const d = buildSmoothWirePathD(shifted);
+  // Sharp corners: real wire runs bend at right angles, not curves.
+  const d = buildSmoothWirePathD(shifted, 0);
 
   return (
     <path
@@ -182,9 +192,10 @@ function ConnectionLines({
 
   const getCenter = (deviceId: string) => {
     const device = model.devices.find((d) => d.id === deviceId);
+    const layout = deviceLayout(deviceTypes.get(deviceId) ?? '');
     return {
-      x: (device?.position?.x ?? 0) + DEVICE_W / 2,
-      y: (device?.position?.y ?? 0) + 72,
+      x: (device?.position?.x ?? 0) + (layout?.width ?? DEVICE_W) / 2,
+      y: (device?.position?.y ?? 0) + (layout?.height ?? 72) / 2,
     };
   };
 
@@ -397,37 +408,34 @@ export function Canvas({ state }: CanvasProps) {
       const device = model.devices.find((d) => d.id === deviceId);
       const type = deviceTypes.get(deviceId);
       const def = type ? registry.get(type) : undefined;
-      if (!device || !def) return undefined;
-      const visible = getVisiblePorts(deviceId, def, model.connections);
-      const idx = visible.findIndex((p) => p.id === portId);
-      if (idx < 0) return undefined;
-      const cols = 3;
-      const col = idx % cols;
-      const row = Math.floor(idx / cols);
+      if (!device || !def || !type) return undefined;
+      const wired = canvasPorts(def);
+      const idx = wired.findIndex((p) => p.id === portId);
+      const offset = portOffset(type, portId, Math.max(0, idx), wired.length);
+      if (!offset) return undefined;
       return {
-        x: (device.position?.x ?? 0) + 18 + col * 50,
-        y: (device.position?.y ?? 0) + 106 + row * 22,
+        x: (device.position?.x ?? 0) + offset.x,
+        y: (device.position?.y ?? 0) + offset.y,
       };
     },
-    [deviceTypes, model.connections, model.devices, registry],
+    [deviceTypes, model.devices, registry],
   );
 
   const estimateDeviceBounds = useCallback(
     (deviceId: string): Rect | undefined => {
       const device = model.devices.find((d) => d.id === deviceId);
       const type = deviceTypes.get(deviceId);
-      const def = type ? registry.get(type) : undefined;
-      if (!device || !def) return undefined;
-      const visible = getVisiblePorts(deviceId, def, model.connections);
-      const rows = Math.max(1, Math.ceil(visible.length / 3));
+      if (!device || !type) return undefined;
+      const layout = deviceLayout(type);
+      if (!layout) return undefined;
       return {
         x: device.position?.x ?? 0,
         y: device.position?.y ?? 0,
-        width: DEVICE_W,
-        height: 106 + rows * 22 + 12,
+        width: layout.width,
+        height: layout.height,
       };
     },
-    [deviceTypes, model.connections, model.devices, registry],
+    [deviceTypes, model.devices],
   );
 
   const dragRef = useRef<{
@@ -601,28 +609,26 @@ export function Canvas({ state }: CanvasProps) {
         const isSelected = device.id === selectedDeviceId;
         const isHighlighted = highlightDeviceIds.includes(device.id);
         const hasError = errorDeviceIds.has(device.id);
-        const visiblePorts = def ? getVisiblePorts(device.id, def, model.connections) : [];
-        const hiddenCount = def ? countHiddenPorts(device.id, def, model.connections) : 0;
+        const layout = deviceLayout(device.type);
+        const image = deviceImage(device.type);
+        const ports = def ? canvasPorts(def) : [];
 
         return (
           <div
             key={device.id}
             className={`device-node ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''} ${hasError ? 'device-error' : ''}`}
-            style={{ left: x, top: y, width: DEVICE_W }}
+            style={{ left: x, top: y, width: layout?.width ?? DEVICE_W }}
             onClick={(e: { stopPropagation(): void }) => e.stopPropagation()}
           >
             <div
-              className="device-drag-handle"
+              className="device-body"
+              style={{ height: layout?.height }}
               onPointerDown={(e: PointerEvent) => onDevicePointerDown(device.id, e)}
             >
-              <div className="device-image-wrap">
-                <DeviceIcon type={device.type} size={52} />
-              </div>
-              <div className="device-title">{device.label ?? def?.displayName ?? device.type}</div>
-              <div className="device-type">{device.type}</div>
-            </div>
-            <div className="device-ports">
-              {visiblePorts.map((port) => {
+              {image && <img className="device-art" src={image} alt="" draggable={false} />}
+              {ports.map((port, idx) => {
+                const offset = portOffset(device.type, port.id, idx, ports.length);
+                if (!offset) return null;
                 const connected = isPortConnected(device.id, port.id, model.connections);
                 const portFull = isPortAtCapacity(
                   model.connections,
@@ -647,21 +653,21 @@ export function Canvas({ state }: CanvasProps) {
                     type="button"
                     data-device-id={device.id}
                     data-port-id={port.id}
-                    className={`port-btn ${isPending ? 'pending' : ''} ${connected ? 'connected' : 'disconnected'} ${compatible ? 'compatible' : ''} ${portFull ? 'port-full' : ''}`}
-                    style={{ borderColor: portTypeColor(port.type) }}
+                    className={`port-dot ${isPending ? 'pending' : ''} ${connected ? 'connected' : 'disconnected'} ${compatible ? 'compatible' : ''} ${portFull ? 'port-full' : ''}`}
+                    style={{
+                      left: offset.x,
+                      top: offset.y,
+                      background: portTypeColor(port.type),
+                    }}
                     title={`${portDisplayLabel(port.id, device.type)} (${PORT_TYPE_NAMES[port.type]})${portFull ? ' — full' : ''}`}
                     disabled={portFull && !connected}
                     onPointerDown={(e: PointerEvent) => onPortPointerDown(device.id, port.id, e)}
                     onClick={(e: { stopPropagation(): void }) => onPortClick(device.id, port.id, e)}
-                  >
-                    {portDisplayLabel(port.id, device.type)}
-                  </button>
+                  />
                 );
               })}
-              {hiddenCount > 0 && (
-                <span className="port-more">+{hiddenCount} ports in properties</span>
-              )}
             </div>
+            <div className="device-caption">{device.label ?? def?.displayName ?? device.type}</div>
           </div>
         );
       })}
@@ -672,6 +678,9 @@ export function Canvas({ state }: CanvasProps) {
           getPortPosition={estimatePortPosition}
           getDeviceBounds={estimateDeviceBounds}
         />
+      </svg>
+
+      <svg className="canvas-svg canvas-draglayer" aria-hidden="true">
         {dragLine && (
           <line
             x1={dragLine.x1}
@@ -679,7 +688,7 @@ export function Canvas({ state }: CanvasProps) {
             x2={dragLine.x2}
             y2={dragLine.y2}
             stroke={pendingPortType !== undefined ? portTypeColor(pendingPortType) : '#6b818c'}
-            strokeWidth={3}
+            strokeWidth={2}
             strokeLinecap="round"
             strokeDasharray="6 4"
           />

@@ -14,42 +14,42 @@ export function wireVisualForPortType(type: PortType): WireVisual {
         kind: 'pair',
         colors: ['#ef4444', '#111827'],
         label: '12V (+ red / − black)',
-        width: 3,
+        width: 2.2,
       };
     case PortType.GROUND:
       return {
         kind: 'single',
         colors: ['#111827'],
         label: 'Ground (black)',
-        width: 2.5,
+        width: 1.8,
       };
     case PortType.CAN:
       return {
         kind: 'pair',
         colors: ['#22c55e', '#eab308'],
         label: 'CAN (green / yellow)',
-        width: 2.5,
+        width: 1.6,
       };
     case PortType.ETHERNET:
       return {
         kind: 'single',
         colors: ['#2563eb'],
         label: 'Ethernet (blue)',
-        width: 2.5,
+        width: 1.8,
       };
     case PortType.PWM:
       return {
         kind: 'single',
         colors: ['#f8fafc'],
         label: 'PWM (white)',
-        width: 2,
+        width: 1.5,
       };
     case PortType.DIO:
       return {
         kind: 'single',
         colors: ['#f472b6'],
         label: 'DIO',
-        width: 2,
+        width: 1.5,
       };
     case PortType.USBA:
     case PortType.USBC:
@@ -57,14 +57,14 @@ export function wireVisualForPortType(type: PortType): WireVisual {
         kind: 'single',
         colors: ['#94a3b8'],
         label: 'USB',
-        width: 2,
+        width: 1.5,
       };
     default:
       return {
         kind: 'single',
         colors: ['#64748b'],
         label: 'Signal',
-        width: 2,
+        width: 1.5,
       };
   }
 }
