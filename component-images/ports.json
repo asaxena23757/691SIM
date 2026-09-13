@@ -1,0 +1,1345 @@
+{
+  "schema": 1,
+  "units": "design units; each part's PNG is saved 1:1 so these are pixels",
+  "sides": "which edge of the part a wire leaves from: left|right|top|bottom",
+  "parts": {
+    "pdh": {
+      "description": "REV Power Distribution Hub",
+      "image": "pdh/pdh.png",
+      "width": 620,
+      "height": 1400,
+      "port_count": 55,
+      "ports": {
+        "CH0+": {
+          "side": "left",
+          "x": 26,
+          "y": 101.0
+        },
+        "CH0-": {
+          "side": "left",
+          "x": 26,
+          "y": 145.0
+        },
+        "CH10+": {
+          "side": "right",
+          "x": 594,
+          "y": 101.0
+        },
+        "CH10-": {
+          "side": "right",
+          "x": 594,
+          "y": 145.0
+        },
+        "CH1+": {
+          "side": "left",
+          "x": 26,
+          "y": 199.0
+        },
+        "CH1-": {
+          "side": "left",
+          "x": 26,
+          "y": 243.0
+        },
+        "CH11+": {
+          "side": "right",
+          "x": 594,
+          "y": 199.0
+        },
+        "CH11-": {
+          "side": "right",
+          "x": 594,
+          "y": 243.0
+        },
+        "CH2+": {
+          "side": "left",
+          "x": 26,
+          "y": 297.0
+        },
+        "CH2-": {
+          "side": "left",
+          "x": 26,
+          "y": 341.0
+        },
+        "CH12+": {
+          "side": "right",
+          "x": 594,
+          "y": 297.0
+        },
+        "CH12-": {
+          "side": "right",
+          "x": 594,
+          "y": 341.0
+        },
+        "CH3+": {
+          "side": "left",
+          "x": 26,
+          "y": 395.0
+        },
+        "CH3-": {
+          "side": "left",
+          "x": 26,
+          "y": 439.0
+        },
+        "CH13+": {
+          "side": "right",
+          "x": 594,
+          "y": 395.0
+        },
+        "CH13-": {
+          "side": "right",
+          "x": 594,
+          "y": 439.0
+        },
+        "CH4+": {
+          "side": "left",
+          "x": 26,
+          "y": 493.0
+        },
+        "CH4-": {
+          "side": "left",
+          "x": 26,
+          "y": 537.0
+        },
+        "CH14+": {
+          "side": "right",
+          "x": 594,
+          "y": 493.0
+        },
+        "CH14-": {
+          "side": "right",
+          "x": 594,
+          "y": 537.0
+        },
+        "CH5+": {
+          "side": "left",
+          "x": 26,
+          "y": 591.0
+        },
+        "CH5-": {
+          "side": "left",
+          "x": 26,
+          "y": 635.0
+        },
+        "CH15+": {
+          "side": "right",
+          "x": 594,
+          "y": 591.0
+        },
+        "CH15-": {
+          "side": "right",
+          "x": 594,
+          "y": 635.0
+        },
+        "CH6+": {
+          "side": "left",
+          "x": 26,
+          "y": 689.0
+        },
+        "CH6-": {
+          "side": "left",
+          "x": 26,
+          "y": 733.0
+        },
+        "CH16+": {
+          "side": "right",
+          "x": 594,
+          "y": 689.0
+        },
+        "CH16-": {
+          "side": "right",
+          "x": 594,
+          "y": 733.0
+        },
+        "CH7+": {
+          "side": "left",
+          "x": 26,
+          "y": 787.0
+        },
+        "CH7-": {
+          "side": "left",
+          "x": 26,
+          "y": 831.0
+        },
+        "CH17+": {
+          "side": "right",
+          "x": 594,
+          "y": 787.0
+        },
+        "CH17-": {
+          "side": "right",
+          "x": 594,
+          "y": 831.0
+        },
+        "CH8+": {
+          "side": "left",
+          "x": 26,
+          "y": 885.0
+        },
+        "CH8-": {
+          "side": "left",
+          "x": 26,
+          "y": 929.0
+        },
+        "CH18+": {
+          "side": "right",
+          "x": 594,
+          "y": 885.0
+        },
+        "CH18-": {
+          "side": "right",
+          "x": 594,
+          "y": 929.0
+        },
+        "CH9+": {
+          "side": "left",
+          "x": 26,
+          "y": 983.0
+        },
+        "CH9-": {
+          "side": "left",
+          "x": 26,
+          "y": 1027.0
+        },
+        "CH19+": {
+          "side": "right",
+          "x": 594,
+          "y": 983.0
+        },
+        "CH19-": {
+          "side": "right",
+          "x": 594,
+          "y": 1027.0
+        },
+        "CH20+": {
+          "side": "left",
+          "x": 26,
+          "y": 1102.5
+        },
+        "CH20-": {
+          "side": "left",
+          "x": 26,
+          "y": 1122.5
+        },
+        "CH21+": {
+          "side": "left",
+          "x": 26,
+          "y": 1144.5
+        },
+        "CH21-": {
+          "side": "left",
+          "x": 26,
+          "y": 1164.5
+        },
+        "CH22+": {
+          "side": "left",
+          "x": 26,
+          "y": 1186.5
+        },
+        "CH22-": {
+          "side": "left",
+          "x": 26,
+          "y": 1206.5
+        },
+        "CH23+": {
+          "side": "left",
+          "x": 26,
+          "y": 1228.5
+        },
+        "CH23-": {
+          "side": "left",
+          "x": 26,
+          "y": 1248.5
+        },
+        "USB-C": {
+          "side": "bottom",
+          "x": 103,
+          "y": 1372
+        },
+        "CAN_H_IN": {
+          "side": "bottom",
+          "x": 180.0,
+          "y": 1372
+        },
+        "CAN_L_IN": {
+          "side": "bottom",
+          "x": 228.0,
+          "y": 1372
+        },
+        "CAN_H_OUT": {
+          "side": "bottom",
+          "x": 276.0,
+          "y": 1372
+        },
+        "CAN_L_OUT": {
+          "side": "bottom",
+          "x": 324.0,
+          "y": 1372
+        },
+        "BATT+": {
+          "side": "bottom",
+          "x": 450.0,
+          "y": 1372
+        },
+        "BATT-": {
+          "side": "bottom",
+          "x": 518.0,
+          "y": 1372
+        }
+      }
+    },
+    "pdp": {
+      "description": "CTRE Power Distribution Panel (original)",
+      "image": "pdp/pdp.png",
+      "width": 620,
+      "height": 900,
+      "port_count": 44,
+      "ports": {
+        "CH8+": {
+          "side": "left",
+          "x": 30,
+          "y": 213
+        },
+        "CH8-": {
+          "side": "left",
+          "x": 30,
+          "y": 235
+        },
+        "CH9+": {
+          "side": "left",
+          "x": 30,
+          "y": 273
+        },
+        "CH9-": {
+          "side": "left",
+          "x": 30,
+          "y": 295
+        },
+        "CH10+": {
+          "side": "left",
+          "x": 30,
+          "y": 333
+        },
+        "CH10-": {
+          "side": "left",
+          "x": 30,
+          "y": 355
+        },
+        "CH11+": {
+          "side": "left",
+          "x": 30,
+          "y": 393
+        },
+        "CH11-": {
+          "side": "left",
+          "x": 30,
+          "y": 415
+        },
+        "CH12+": {
+          "side": "left",
+          "x": 30,
+          "y": 453
+        },
+        "CH12-": {
+          "side": "left",
+          "x": 30,
+          "y": 475
+        },
+        "CH13+": {
+          "side": "left",
+          "x": 30,
+          "y": 513
+        },
+        "CH13-": {
+          "side": "left",
+          "x": 30,
+          "y": 535
+        },
+        "CH14+": {
+          "side": "left",
+          "x": 30,
+          "y": 573
+        },
+        "CH14-": {
+          "side": "left",
+          "x": 30,
+          "y": 595
+        },
+        "CH15+": {
+          "side": "left",
+          "x": 30,
+          "y": 633
+        },
+        "CH15-": {
+          "side": "left",
+          "x": 30,
+          "y": 655
+        },
+        "CH7+": {
+          "side": "right",
+          "x": 590,
+          "y": 213
+        },
+        "CH7-": {
+          "side": "right",
+          "x": 590,
+          "y": 235
+        },
+        "CH6+": {
+          "side": "right",
+          "x": 590,
+          "y": 273
+        },
+        "CH6-": {
+          "side": "right",
+          "x": 590,
+          "y": 295
+        },
+        "CH5+": {
+          "side": "right",
+          "x": 590,
+          "y": 333
+        },
+        "CH5-": {
+          "side": "right",
+          "x": 590,
+          "y": 355
+        },
+        "CH4+": {
+          "side": "right",
+          "x": 590,
+          "y": 393
+        },
+        "CH4-": {
+          "side": "right",
+          "x": 590,
+          "y": 415
+        },
+        "CH3+": {
+          "side": "right",
+          "x": 590,
+          "y": 453
+        },
+        "CH3-": {
+          "side": "right",
+          "x": 590,
+          "y": 475
+        },
+        "CH2+": {
+          "side": "right",
+          "x": 590,
+          "y": 513
+        },
+        "CH2-": {
+          "side": "right",
+          "x": 590,
+          "y": 535
+        },
+        "CH1+": {
+          "side": "right",
+          "x": 590,
+          "y": 573
+        },
+        "CH1-": {
+          "side": "right",
+          "x": 590,
+          "y": 595
+        },
+        "CH0+": {
+          "side": "right",
+          "x": 590,
+          "y": 633
+        },
+        "CH0-": {
+          "side": "right",
+          "x": 590,
+          "y": 655
+        },
+        "roboRIO+": {
+          "side": "top",
+          "x": 84,
+          "y": 76
+        },
+        "roboRIO-": {
+          "side": "top",
+          "x": 134,
+          "y": 76
+        },
+        "VRM+": {
+          "side": "top",
+          "x": 222,
+          "y": 76
+        },
+        "VRM-": {
+          "side": "top",
+          "x": 272,
+          "y": 76
+        },
+        "PCM+": {
+          "side": "top",
+          "x": 360,
+          "y": 76
+        },
+        "PCM-": {
+          "side": "top",
+          "x": 410,
+          "y": 76
+        },
+        "BATT+": {
+          "side": "bottom",
+          "x": 438,
+          "y": 786
+        },
+        "BATT-": {
+          "side": "bottom",
+          "x": 528,
+          "y": 786
+        },
+        "CAN_H_IN": {
+          "side": "bottom",
+          "x": 76,
+          "y": 768
+        },
+        "CAN_L_IN": {
+          "side": "bottom",
+          "x": 114,
+          "y": 768
+        },
+        "CAN_H_OUT": {
+          "side": "bottom",
+          "x": 152,
+          "y": 768
+        },
+        "CAN_L_OUT": {
+          "side": "bottom",
+          "x": 190,
+          "y": 768
+        }
+      }
+    },
+    "vrm": {
+      "description": "CTRE Voltage Regulator Module",
+      "image": "vrm/vrm.png",
+      "width": 560,
+      "height": 560,
+      "port_count": 18,
+      "ports": {
+        "VIN+": {
+          "side": "top",
+          "x": 259,
+          "y": 40
+        },
+        "VIN-": {
+          "side": "top",
+          "x": 301,
+          "y": 40
+        },
+        "12V_2A_1+": {
+          "side": "left",
+          "x": 52,
+          "y": 168.0
+        },
+        "12V_2A_1-": {
+          "side": "left",
+          "x": 52,
+          "y": 208.0
+        },
+        "12V_2A_2+": {
+          "side": "left",
+          "x": 52,
+          "y": 248.0
+        },
+        "12V_2A_2-": {
+          "side": "left",
+          "x": 52,
+          "y": 288.0
+        },
+        "12V_500mA_1+": {
+          "side": "left",
+          "x": 52,
+          "y": 328.0
+        },
+        "12V_500mA_1-": {
+          "side": "left",
+          "x": 52,
+          "y": 368.0
+        },
+        "12V_500mA_2+": {
+          "side": "left",
+          "x": 52,
+          "y": 408.0
+        },
+        "12V_500mA_2-": {
+          "side": "left",
+          "x": 52,
+          "y": 448.0
+        },
+        "5V_2A_1+": {
+          "side": "right",
+          "x": 508,
+          "y": 168.0
+        },
+        "5V_2A_1-": {
+          "side": "right",
+          "x": 508,
+          "y": 208.0
+        },
+        "5V_2A_2+": {
+          "side": "right",
+          "x": 508,
+          "y": 248.0
+        },
+        "5V_2A_2-": {
+          "side": "right",
+          "x": 508,
+          "y": 288.0
+        },
+        "5V_500mA_1+": {
+          "side": "right",
+          "x": 508,
+          "y": 328.0
+        },
+        "5V_500mA_1-": {
+          "side": "right",
+          "x": 508,
+          "y": 368.0
+        },
+        "5V_500mA_2+": {
+          "side": "right",
+          "x": 508,
+          "y": 408.0
+        },
+        "5V_500mA_2-": {
+          "side": "right",
+          "x": 508,
+          "y": 448.0
+        }
+      }
+    },
+    "battery": {
+      "description": "12V 18Ah SLA robot battery",
+      "image": "battery/battery.png",
+      "width": 620,
+      "height": 480,
+      "port_count": 2,
+      "ports": {
+        "BATT+": {
+          "side": "top",
+          "x": 178,
+          "y": 62
+        },
+        "BATT-": {
+          "side": "top",
+          "x": 442,
+          "y": 62
+        }
+      }
+    },
+    "breaker120": {
+      "description": "120A main breaker (Bussmann 285120)",
+      "image": "breaker120/breaker120.png",
+      "width": 620,
+      "height": 580,
+      "port_count": 2,
+      "ports": {
+        "STUD_BATT": {
+          "side": "top",
+          "x": 246,
+          "y": 40
+        },
+        "STUD_LOAD": {
+          "side": "bottom",
+          "x": 374,
+          "y": 540
+        }
+      }
+    },
+    "roborio": {
+      "description": "NI roboRIO 2.0 main controller",
+      "image": "roborio/roborio.png",
+      "width": 680,
+      "height": 620,
+      "port_count": 46,
+      "ports": {
+        "CAN_H": {
+          "side": "top",
+          "x": 58,
+          "y": 50
+        },
+        "CAN_L": {
+          "side": "top",
+          "x": 86,
+          "y": 50
+        },
+        "V+": {
+          "side": "top",
+          "x": 134,
+          "y": 50
+        },
+        "V-": {
+          "side": "top",
+          "x": 156,
+          "y": 50
+        },
+        "USB_DEVICE": {
+          "side": "top",
+          "x": 207,
+          "y": 50
+        },
+        "ETH": {
+          "side": "top",
+          "x": 394,
+          "y": 50
+        },
+        "USB_HOST1": {
+          "side": "top",
+          "x": 253,
+          "y": 50
+        },
+        "USB_HOST2": {
+          "side": "top",
+          "x": 293,
+          "y": 50
+        },
+        "USB_HOST3": {
+          "side": "top",
+          "x": 333,
+          "y": 50
+        },
+        "USB_HOST4": {
+          "side": "top",
+          "x": 373,
+          "y": 50
+        },
+        "PWM0": {
+          "side": "right",
+          "x": 588,
+          "y": 320
+        },
+        "PWM1": {
+          "side": "right",
+          "x": 614,
+          "y": 320
+        },
+        "PWM2": {
+          "side": "right",
+          "x": 588,
+          "y": 344
+        },
+        "PWM3": {
+          "side": "right",
+          "x": 614,
+          "y": 344
+        },
+        "PWM4": {
+          "side": "right",
+          "x": 588,
+          "y": 368
+        },
+        "PWM5": {
+          "side": "right",
+          "x": 614,
+          "y": 368
+        },
+        "PWM6": {
+          "side": "right",
+          "x": 588,
+          "y": 392
+        },
+        "PWM7": {
+          "side": "right",
+          "x": 614,
+          "y": 392
+        },
+        "PWM8": {
+          "side": "right",
+          "x": 588,
+          "y": 416
+        },
+        "PWM9": {
+          "side": "right",
+          "x": 614,
+          "y": 416
+        },
+        "DIO0": {
+          "side": "left",
+          "x": 40,
+          "y": 216
+        },
+        "DIO1": {
+          "side": "left",
+          "x": 66,
+          "y": 216
+        },
+        "DIO2": {
+          "side": "left",
+          "x": 40,
+          "y": 240
+        },
+        "DIO3": {
+          "side": "left",
+          "x": 66,
+          "y": 240
+        },
+        "DIO4": {
+          "side": "left",
+          "x": 40,
+          "y": 264
+        },
+        "DIO5": {
+          "side": "left",
+          "x": 66,
+          "y": 264
+        },
+        "DIO6": {
+          "side": "left",
+          "x": 40,
+          "y": 288
+        },
+        "DIO7": {
+          "side": "left",
+          "x": 66,
+          "y": 288
+        },
+        "DIO8": {
+          "side": "left",
+          "x": 40,
+          "y": 312
+        },
+        "DIO9": {
+          "side": "left",
+          "x": 66,
+          "y": 312
+        },
+        "RSL+": {
+          "side": "bottom",
+          "x": 50,
+          "y": 580
+        },
+        "RSL-": {
+          "side": "bottom",
+          "x": 72,
+          "y": 580
+        },
+        "RELAY0_F": {
+          "side": "bottom",
+          "x": 150,
+          "y": 582
+        },
+        "RELAY0_R": {
+          "side": "bottom",
+          "x": 172,
+          "y": 582
+        },
+        "RELAY1_F": {
+          "side": "bottom",
+          "x": 194,
+          "y": 582
+        },
+        "RELAY1_R": {
+          "side": "bottom",
+          "x": 216,
+          "y": 582
+        },
+        "RELAY2_F": {
+          "side": "bottom",
+          "x": 238,
+          "y": 582
+        },
+        "RELAY2_R": {
+          "side": "bottom",
+          "x": 260,
+          "y": 582
+        },
+        "RELAY3_F": {
+          "side": "bottom",
+          "x": 282,
+          "y": 582
+        },
+        "RELAY3_R": {
+          "side": "bottom",
+          "x": 304,
+          "y": 582
+        },
+        "AI0": {
+          "side": "bottom",
+          "x": 370,
+          "y": 582
+        },
+        "AI1": {
+          "side": "bottom",
+          "x": 392,
+          "y": 582
+        },
+        "AI2": {
+          "side": "bottom",
+          "x": 414,
+          "y": 582
+        },
+        "AI3": {
+          "side": "bottom",
+          "x": 436,
+          "y": 582
+        },
+        "I2C_SDA": {
+          "side": "left",
+          "x": 50,
+          "y": 100
+        },
+        "I2C_SCL": {
+          "side": "left",
+          "x": 70,
+          "y": 100
+        }
+      }
+    },
+    "systemcore": {
+      "description": "CTRE SystemCore (speculative, 2027 season)",
+      "image": "systemcore/systemcore.png",
+      "width": 620,
+      "height": 700,
+      "port_count": 23,
+      "ports": {
+        "PWR+": {
+          "side": "top",
+          "x": 106.80000000000001,
+          "y": 60
+        },
+        "PWR-": {
+          "side": "top",
+          "x": 155.2,
+          "y": 60
+        },
+        "CAN_H": {
+          "side": "top",
+          "x": 294.8,
+          "y": 60
+        },
+        "CAN_L": {
+          "side": "top",
+          "x": 343.2,
+          "y": 60
+        },
+        "ETH1": {
+          "side": "right",
+          "x": 592,
+          "y": 196.0
+        },
+        "ETH2": {
+          "side": "right",
+          "x": 592,
+          "y": 252.0
+        },
+        "USB_C": {
+          "side": "right",
+          "x": 592,
+          "y": 308.0
+        },
+        "DIO0": {
+          "side": "bottom",
+          "x": 150,
+          "y": 400
+        },
+        "DIO1": {
+          "side": "bottom",
+          "x": 180,
+          "y": 400
+        },
+        "DIO2": {
+          "side": "bottom",
+          "x": 210,
+          "y": 400
+        },
+        "DIO3": {
+          "side": "bottom",
+          "x": 240,
+          "y": 400
+        },
+        "DIO4": {
+          "side": "bottom",
+          "x": 270,
+          "y": 400
+        },
+        "DIO5": {
+          "side": "bottom",
+          "x": 300,
+          "y": 400
+        },
+        "DIO6": {
+          "side": "bottom",
+          "x": 330,
+          "y": 400
+        },
+        "DIO7": {
+          "side": "bottom",
+          "x": 360,
+          "y": 400
+        },
+        "PWM0": {
+          "side": "bottom",
+          "x": 150,
+          "y": 452
+        },
+        "PWM1": {
+          "side": "bottom",
+          "x": 180,
+          "y": 452
+        },
+        "PWM2": {
+          "side": "bottom",
+          "x": 210,
+          "y": 452
+        },
+        "PWM3": {
+          "side": "bottom",
+          "x": 240,
+          "y": 452
+        },
+        "PWM4": {
+          "side": "bottom",
+          "x": 270,
+          "y": 452
+        },
+        "PWM5": {
+          "side": "bottom",
+          "x": 300,
+          "y": 452
+        },
+        "PWM6": {
+          "side": "bottom",
+          "x": 330,
+          "y": 452
+        },
+        "PWM7": {
+          "side": "bottom",
+          "x": 360,
+          "y": 452
+        }
+      }
+    },
+    "sparkmax": {
+      "description": "REV SPARK MAX motor controller",
+      "image": "sparkmax/sparkmax.png",
+      "width": 300,
+      "height": 460,
+      "port_count": 6,
+      "ports": {
+        "DATA": {
+          "side": "top",
+          "x": 150,
+          "y": 40
+        },
+        "PHASE_A": {
+          "side": "top",
+          "x": 108,
+          "y": 78
+        },
+        "PHASE_B": {
+          "side": "top",
+          "x": 150,
+          "y": 78
+        },
+        "PHASE_C": {
+          "side": "top",
+          "x": 192,
+          "y": 78
+        },
+        "V+": {
+          "side": "bottom",
+          "x": 116,
+          "y": 426
+        },
+        "V-": {
+          "side": "bottom",
+          "x": 184,
+          "y": 426
+        }
+      }
+    },
+    "sparkflex": {
+      "description": "REV SPARK Flex motor controller",
+      "image": "sparkflex/sparkflex.png",
+      "width": 320,
+      "height": 500,
+      "port_count": 6,
+      "ports": {
+        "DATA": {
+          "side": "top",
+          "x": 160,
+          "y": 40
+        },
+        "PHASE_A": {
+          "side": "top",
+          "x": 118,
+          "y": 78
+        },
+        "PHASE_B": {
+          "side": "top",
+          "x": 160,
+          "y": 78
+        },
+        "PHASE_C": {
+          "side": "top",
+          "x": 202,
+          "y": 78
+        },
+        "V+": {
+          "side": "bottom",
+          "x": 126,
+          "y": 464
+        },
+        "V-": {
+          "side": "bottom",
+          "x": 194,
+          "y": 464
+        }
+      }
+    },
+    "talonfx": {
+      "description": "CTRE Talon FX-family integrated brushless motor",
+      "image": "talonfx/talonfx.png",
+      "width": 340,
+      "height": 340,
+      "port_count": 4,
+      "ports": {
+        "PWR-": {
+          "side": "bottom",
+          "x": 80,
+          "y": 278.0
+        },
+        "CAN_H": {
+          "side": "bottom",
+          "x": 140,
+          "y": 278.0
+        },
+        "CAN_L": {
+          "side": "bottom",
+          "x": 200,
+          "y": 278.0
+        },
+        "PWR+": {
+          "side": "bottom",
+          "x": 260,
+          "y": 278.0
+        }
+      }
+    },
+    "cancoder": {
+      "description": "CTRE CANcoder magnetic encoder",
+      "image": "cancoder/cancoder.png",
+      "width": 300,
+      "height": 260,
+      "port_count": 4,
+      "ports": {
+        "PWR+": {
+          "side": "right",
+          "x": 230,
+          "y": 112
+        },
+        "PWR-": {
+          "side": "right",
+          "x": 230,
+          "y": 124
+        },
+        "CAN_H": {
+          "side": "right",
+          "x": 230,
+          "y": 136
+        },
+        "CAN_L": {
+          "side": "right",
+          "x": 230,
+          "y": 148
+        }
+      }
+    },
+    "pigeon2": {
+      "description": "CTRE Pigeon 2 IMU",
+      "image": "pigeon2/pigeon2.png",
+      "width": 260,
+      "height": 240,
+      "port_count": 4,
+      "ports": {
+        "PWR+": {
+          "side": "right",
+          "x": 220,
+          "y": 96
+        },
+        "PWR-": {
+          "side": "right",
+          "x": 220,
+          "y": 108
+        },
+        "CAN_H": {
+          "side": "right",
+          "x": 220,
+          "y": 120
+        },
+        "CAN_L": {
+          "side": "right",
+          "x": 220,
+          "y": 132
+        }
+      }
+    },
+    "limelight": {
+      "description": "Limelight 3 vision camera",
+      "image": "limelight/limelight.png",
+      "width": 340,
+      "height": 320,
+      "port_count": 4,
+      "ports": {
+        "PWR+": {
+          "side": "bottom",
+          "x": 94,
+          "y": 272
+        },
+        "PWR-": {
+          "side": "bottom",
+          "x": 106,
+          "y": 272
+        },
+        "ETH": {
+          "side": "bottom",
+          "x": 168,
+          "y": 272
+        },
+        "USB_C": {
+          "side": "bottom",
+          "x": 235,
+          "y": 272
+        }
+      }
+    },
+    "photonvision": {
+      "description": "Generic USB vision camera (PhotonVision)",
+      "image": "photonvision/photonvision.png",
+      "width": 260,
+      "height": 240,
+      "port_count": 1,
+      "ports": {
+        "USB": {
+          "side": "bottom",
+          "x": 130,
+          "y": 200
+        }
+      }
+    },
+    "orangepi": {
+      "description": "Orange Pi 5 vision coprocessor",
+      "image": "orangepi/orangepi.png",
+      "width": 420,
+      "height": 340,
+      "port_count": 5,
+      "ports": {
+        "USB_C_PWR": {
+          "side": "left",
+          "x": 20,
+          "y": 91.0
+        },
+        "ETH": {
+          "side": "left",
+          "x": 20,
+          "y": 137.0
+        },
+        "HDMI": {
+          "side": "left",
+          "x": 20,
+          "y": 183.0
+        },
+        "USB3_1": {
+          "side": "right",
+          "x": 400,
+          "y": 91.0
+        },
+        "USB3_2": {
+          "side": "right",
+          "x": 400,
+          "y": 137.0
+        }
+      }
+    },
+    "radio": {
+      "description": "Vivid-Hosting VH-109 FRC radio",
+      "image": "radio/radio.png",
+      "width": 420,
+      "height": 280,
+      "port_count": 6,
+      "ports": {
+        "PWR+": {
+          "side": "bottom",
+          "x": 118.48,
+          "y": 230
+        },
+        "PWR-": {
+          "side": "bottom",
+          "x": 147.51999999999998,
+          "y": 230
+        },
+        "ETH1": {
+          "side": "bottom",
+          "x": 218.0,
+          "y": 230
+        },
+        "ETH2": {
+          "side": "bottom",
+          "x": 262.0,
+          "y": 230
+        },
+        "ETH3": {
+          "side": "bottom",
+          "x": 306.0,
+          "y": 230
+        },
+        "ETH4": {
+          "side": "bottom",
+          "x": 350.0,
+          "y": 230
+        }
+      }
+    },
+    "ethswitch": {
+      "description": "Generic 5-port unmanaged Ethernet switch",
+      "image": "ethswitch/ethswitch.png",
+      "width": 420,
+      "height": 180,
+      "port_count": 7,
+      "ports": {
+        "PWR+": {
+          "side": "top",
+          "x": 51.28,
+          "y": 44
+        },
+        "PWR-": {
+          "side": "top",
+          "x": 84.72,
+          "y": 44
+        },
+        "ETH1": {
+          "side": "top",
+          "x": 159.0,
+          "y": 44
+        },
+        "ETH2": {
+          "side": "top",
+          "x": 205.0,
+          "y": 44
+        },
+        "ETH3": {
+          "side": "top",
+          "x": 251.0,
+          "y": 44
+        },
+        "ETH4": {
+          "side": "top",
+          "x": 297.0,
+          "y": 44
+        },
+        "ETH5": {
+          "side": "top",
+          "x": 343.0,
+          "y": 44
+        }
+      }
+    }
+  }
+}

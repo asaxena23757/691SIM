@@ -1,0 +1,232 @@
+{
+  "CAN_H": {
+    "side": "top",
+    "x": 58,
+    "y": 50
+  },
+  "CAN_L": {
+    "side": "top",
+    "x": 86,
+    "y": 50
+  },
+  "V+": {
+    "side": "top",
+    "x": 134,
+    "y": 50
+  },
+  "V-": {
+    "side": "top",
+    "x": 156,
+    "y": 50
+  },
+  "USB_DEVICE": {
+    "side": "top",
+    "x": 207,
+    "y": 50
+  },
+  "ETH": {
+    "side": "top",
+    "x": 394,
+    "y": 50
+  },
+  "USB_HOST1": {
+    "side": "top",
+    "x": 253,
+    "y": 50
+  },
+  "USB_HOST2": {
+    "side": "top",
+    "x": 293,
+    "y": 50
+  },
+  "USB_HOST3": {
+    "side": "top",
+    "x": 333,
+    "y": 50
+  },
+  "USB_HOST4": {
+    "side": "top",
+    "x": 373,
+    "y": 50
+  },
+  "PWM0": {
+    "side": "right",
+    "x": 588,
+    "y": 320
+  },
+  "PWM1": {
+    "side": "right",
+    "x": 614,
+    "y": 320
+  },
+  "PWM2": {
+    "side": "right",
+    "x": 588,
+    "y": 344
+  },
+  "PWM3": {
+    "side": "right",
+    "x": 614,
+    "y": 344
+  },
+  "PWM4": {
+    "side": "right",
+    "x": 588,
+    "y": 368
+  },
+  "PWM5": {
+    "side": "right",
+    "x": 614,
+    "y": 368
+  },
+  "PWM6": {
+    "side": "right",
+    "x": 588,
+    "y": 392
+  },
+  "PWM7": {
+    "side": "right",
+    "x": 614,
+    "y": 392
+  },
+  "PWM8": {
+    "side": "right",
+    "x": 588,
+    "y": 416
+  },
+  "PWM9": {
+    "side": "right",
+    "x": 614,
+    "y": 416
+  },
+  "DIO0": {
+    "side": "left",
+    "x": 40,
+    "y": 216
+  },
+  "DIO1": {
+    "side": "left",
+    "x": 66,
+    "y": 216
+  },
+  "DIO2": {
+    "side": "left",
+    "x": 40,
+    "y": 240
+  },
+  "DIO3": {
+    "side": "left",
+    "x": 66,
+    "y": 240
+  },
+  "DIO4": {
+    "side": "left",
+    "x": 40,
+    "y": 264
+  },
+  "DIO5": {
+    "side": "left",
+    "x": 66,
+    "y": 264
+  },
+  "DIO6": {
+    "side": "left",
+    "x": 40,
+    "y": 288
+  },
+  "DIO7": {
+    "side": "left",
+    "x": 66,
+    "y": 288
+  },
+  "DIO8": {
+    "side": "left",
+    "x": 40,
+    "y": 312
+  },
+  "DIO9": {
+    "side": "left",
+    "x": 66,
+    "y": 312
+  },
+  "RSL+": {
+    "side": "bottom",
+    "x": 50,
+    "y": 580
+  },
+  "RSL-": {
+    "side": "bottom",
+    "x": 72,
+    "y": 580
+  },
+  "RELAY0_F": {
+    "side": "bottom",
+    "x": 150,
+    "y": 582
+  },
+  "RELAY0_R": {
+    "side": "bottom",
+    "x": 172,
+    "y": 582
+  },
+  "RELAY1_F": {
+    "side": "bottom",
+    "x": 194,
+    "y": 582
+  },
+  "RELAY1_R": {
+    "side": "bottom",
+    "x": 216,
+    "y": 582
+  },
+  "RELAY2_F": {
+    "side": "bottom",
+    "x": 238,
+    "y": 582
+  },
+  "RELAY2_R": {
+    "side": "bottom",
+    "x": 260,
+    "y": 582
+  },
+  "RELAY3_F": {
+    "side": "bottom",
+    "x": 282,
+    "y": 582
+  },
+  "RELAY3_R": {
+    "side": "bottom",
+    "x": 304,
+    "y": 582
+  },
+  "AI0": {
+    "side": "bottom",
+    "x": 370,
+    "y": 582
+  },
+  "AI1": {
+    "side": "bottom",
+    "x": 392,
+    "y": 582
+  },
+  "AI2": {
+    "side": "bottom",
+    "x": 414,
+    "y": 582
+  },
+  "AI3": {
+    "side": "bottom",
+    "x": 436,
+    "y": 582
+  },
+  "I2C_SDA": {
+    "side": "left",
+    "x": 50,
+    "y": 100
+  },
+  "I2C_SCL": {
+    "side": "left",
+    "x": 70,
+    "y": 100
+  }
+}

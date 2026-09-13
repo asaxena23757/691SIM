@@ -1,0 +1,22 @@
+{
+  "PWR+": {
+    "side": "bottom",
+    "x": 94,
+    "y": 272
+  },
+  "PWR-": {
+    "side": "bottom",
+    "x": 106,
+    "y": 272
+  },
+  "ETH": {
+    "side": "bottom",
+    "x": 168,
+    "y": 272
+  },
+  "USB_C": {
+    "side": "bottom",
+    "x": 235,
+    "y": 272
+  }
+}

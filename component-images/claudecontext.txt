@@ -1,0 +1,159 @@
+691SIM COMPONENT IMAGES - SESSION SUMMARY (updated)
+
+
+WHAT WAS BUILT
+
+A Python system that draws flat top-down (or elevation, for motors)
+diagrams of FRC electrical components as transparent PNGs, plus
+machine-readable port coordinates for wiring validation.
+
+All 17 components from the original open-items list are now built:
+PDH, PDP, VRM, 12V battery, 120A main breaker, roboRIO 2.0, SystemCore
+(speculative), SPARK MAX, SPARK Flex, Talon FX, CANcoder, Pigeon 2,
+Limelight 3, a generic PhotonVision USB camera, Orange Pi 5, the
+Vivid-Hosting VH-109 radio, and a generic 5-port Ethernet switch.
+
+
+IMPORTANT -- style.py HAD TO BE RECONSTRUCTED
+
+At the start of this session style.py was 0 bytes (empty) and no PNGs
+existed on disk anywhere in this folder, even though the old summary
+below describes it as built and working. Only the five *.py part
+scripts, their *-ports.json files, and ports.json survived. style.py
+was rebuilt from scratch by reading what every part script imports and
+calls (canvas, C, F/REG/BOLD/MONO, rr/rect/circ/text/line/poly, lever/
+wago/bolt_lug/hex_bolt/mount_hole/breaker, save, dump_ports) and
+re-implementing each to match. Re-running all five original parts
+reproduced visuals consistent with their docstrings/comments, so the
+reconstruction is trusted, but it is a reconstruction, not the
+original bytes -- if a future session finds subtle rendering
+differences from memory, that is why.
+
+While rebuilding, also fixed the FD font-path bug the old notes
+flagged: FD now branches on os.uname().sysname and uses macOS system
+fonts (Arial / Arial Bold / Andale Mono under
+/System/Library/Fonts/Supplemental/) instead of hardcoding the Linux
+DejaVu path. If this ever runs on Linux again, the DejaVu branch is
+still there as the else case -- check paths exist on that machine.
+
+Also added new shared primitives to style.py for the connector types
+the new parts needed, following the same pattern as lever/wago/
+bolt_lug: rj45(), usb(), jst(), pin_header(), barrel_jack(). Reuse
+these instead of hand-drawing connectors in new part files.
+
+Pillow was not installed in the ambient Python -- installed via
+`python3 -m pip install --user Pillow`.
+
+
+REPO STRUCTURE
+
+691simimages/
+  style.py        shared drawing code - the only copy, at root
+  buildall.py     regenerates all 17 parts and merges ports.json
+  ports.json      combined index, 17 parts, 247 ports
+  pdh/ pdp/ vrm/ battery/ breaker120/            (original 5)
+  roborio/ systemcore/                           (controllers)
+  sparkmax/ sparkflex/ talonfx/                  (motor controllers)
+  cancoder/ pigeon2/                             (small CAN sensors)
+  limelight/ photonvision/ orangepi/             (vision)
+  radio/ ethswitch/                              (networking)
+  each folder: <part>.py, <part>.png, <part>-ports.json
+
+
+FINAL SPECS
+
+  part          canvas       ports  notes
+  pdh           620x1400     55     ch 0-19 high current, 20-22 low,
+                                    23 switchable (marked SW)
+  pdp           620x900      44     portrait, battery at bottom
+  vrm           560x560      18     12V rails left, 5V right, input top
+  battery       620x480       2     12V 18Ah SLA
+  breaker120    620x580       2     Bussmann 285120
+  roborio       620x860      47     PWR/CAN/RSL terminals top, ETH +
+                                    2xUSB-A + USB-B right edge, DIO(10)
+                                    /PWM(10)/AI(4)/Relay(4x2)/I2C(2)
+                                    headers bottom, MXP not enumerated
+  systemcore    620x700      23     SPECULATIVE (2027, no published
+                                    pinout yet) -- PWR/CANFD top, dual
+                                    ETH + USB-C right, DIO(8)/PWM(8)
+  sparkmax      300x560      11     PWR top, brushed M+/- bottom,
+                                    USB/CAN/PWM/2xLimit/Motor data
+                                    column on right edge
+  sparkflex     320x600      11     same layout as sparkmax, magenta
+                                    color scheme, larger case
+  talonfx       520x280       4     side elevation (motor can), 4-bolt
+                                    face + shaft left, CAN+PWR pigtail
+                                    right
+  cancoder      300x260       4     round puck, 2 mount holes, JST-4
+                                    pigtail
+  pigeon2       280x240       4     square puck with FWD arrow
+                                    silkscreen, JST-4 pigtail
+  limelight     340x300       3     triangular 3-hole mount pattern,
+                                    barrel jack 12V (not POE) + ETH
+  photonvision  260x220       1     generic USB camera module, since
+                                    PhotonVision is software not a
+                                    specific board
+  orangepi      420x340       5     USB-C pwr/ETH/HDMI left, 2xUSB3
+                                    right, 40-pin GPIO, SD slot
+  radio         460x280       6     Vivid-Hosting VH-109: PWR + 4x ETH,
+                                    2 antenna connectors (not wired as
+                                    ports, just drawn)
+  ethswitch     420x180       7     generic unmanaged 5-port switch,
+                                    kept for teams not on VH-109
+
+
+HARDWARE FACTS ESTABLISHED (carried over + new)
+
+PDH: 20 high-current channels at 40A, 3 low-current at 15A, and 1
+switchable channel which is ch 23. The radio must go on a
+non-switchable channel.
+
+PDP: 40A on channels 0-3 and 12-15, 30A on 4-11. Numbering runs
+continuously around the board.
+
+VRM: each labelled rail has two connector pairs, current limit is
+combined total across both pairs.
+
+Breaker: two studs diagonally opposite, yellow RESET lever + separate
+red trip button.
+
+Radio: OpenMesh is obsolete; VH-109 replaces it with 4 built-in
+Ethernet ports and needs neither the VRM nor a separate switch for
+basic operation (ethswitch.py kept anyway as a legacy/optional part).
+NOTE: Components/radio.md in the main 691SIM repo still documents the
+old OpenMesh radio (eth_poe/eth_aux, VRM-powered) -- that doc was not
+updated this session, so it now disagrees with radio.png/VH-109. Flag
+to the user if reconciling the two matters for their pipeline.
+
+SystemCore: real pinout is not public yet. Everything in systemcore.py
+is a reasonable placeholder shape (PWR, CAN FD, dual Ethernet, USB-C,
+reduced DIO/PWM), not a verified spec. Replace once CTRE ships specs.
+
+SPARK MAX / SPARK Flex: modeled with a simplified connector set (PWR
+screw terminals, brushed M+/- screw terminals, and a single JST column
+for USB/CAN/PWM/2x limit switch/motor-sensor cable). Real hardware
+splits brushless phase leads and hall/encoder sensor leads across
+cables in a way not fully verified pin-for-pin here -- treat
+MOTOR_PHASE as "the brushless data+phase bundle", not a literal single
+connector spec.
+
+Talon FX: modeled as an integrated motor+controller assembly (Falcon
+500 / Kraken X60 form factor) since the controller lives inside the
+motor can, not as a separate board.
+
+
+OPEN ITEMS
+
+PDP and PDH polarity: "+" assumed as upper/first terminal of each
+pair. Not verified against a real board.
+
+All 17 components from the original hardware list are now drawn. If
+more devices get added to DeviceIcon.tsx / hardwareModules.ts in
+apps/web later (new sensors, a POE injector, etc.), follow the same
+pattern: new folder, <part>.py importing style, PORT_EDGES computed
+from geometry constants (never hand-typed), add to buildall.py PARTS
++ DESC.
+
+Machine-specific line: FD in style.py now branches on OS, but only
+macOS and Linux paths are filled in -- add a Windows branch if this
+ever runs there.

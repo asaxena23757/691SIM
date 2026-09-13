@@ -1,0 +1,12 @@
+{
+  "STUD_BATT": {
+    "side": "top",
+    "x": 246,
+    "y": 40
+  },
+  "STUD_LOAD": {
+    "side": "bottom",
+    "x": 374,
+    "y": 540
+  }
+}
