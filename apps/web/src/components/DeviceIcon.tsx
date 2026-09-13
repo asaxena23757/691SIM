@@ -1,3 +1,5 @@
+import { deviceImage } from '../utils/deviceImages';
+
 interface DeviceIconProps {
   type: string;
   size?: number;
@@ -25,6 +27,21 @@ const palette: Record<string, { fill: string; accent: string; label: string }> =
 
 export function DeviceIcon({ type, size = 56 }: DeviceIconProps) {
   const colors = palette[type] ?? { fill: '#1e293b', accent: '#94a3b8', label: '?' };
+  const image = deviceImage(type);
+
+  if (image) {
+    return (
+      <img
+        className="device-photo"
+        src={image}
+        width={size}
+        height={size}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+      />
+    );
+  }
 
   return (
     <svg

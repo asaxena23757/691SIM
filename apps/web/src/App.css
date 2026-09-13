@@ -889,6 +889,34 @@
   display: block;
 }
 
+/* Component diagrams sit on a fixed light plate in both themes -- the boards
+   themselves are dark, so they'd vanish against the dark panel background. */
+.device-photo {
+  display: block;
+  object-fit: contain;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: #e9edf0;
+  border: 1px solid #cdd6dc;
+}
+
+.device-diagram {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+  padding: var(--space-xs);
+  border-radius: var(--radius-md);
+  background: #e9edf0;
+  border: 1px solid #cdd6dc;
+}
+
+.device-diagram img {
+  max-width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+}
+
 .device-ports {
   position: relative;
   z-index: 3;

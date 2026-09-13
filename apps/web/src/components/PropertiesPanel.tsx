@@ -11,6 +11,7 @@ import {
 } from '../utils/fuses';
 import { resolveConnectionPortType, WIRE_COLOR_PRESETS } from '../utils/wireStyles';
 import { autoWireLabel } from '../utils/wireLabels';
+import { deviceImage } from '../utils/deviceImages';
 
 interface PropertiesPanelProps {
   state: RobotModelState;
@@ -298,9 +299,15 @@ export function PropertiesPanel({ state }: PropertiesPanelProps) {
   const canId = selectedDevice.metadata?.canId;
   const ipAddress = selectedDevice.metadata?.ipAddress;
   const breakerClosed = selectedDevice.metadata?.breakerClosed !== false;
+  const diagram = deviceImage(selectedDefinition.type);
 
   return (
     <div className="properties-scroll">
+      {diagram && (
+        <div className="device-diagram">
+          <img src={diagram} alt={`${selectedDefinition.displayName} diagram`} />
+        </div>
+      )}
       <div className="field">
         <label>Label</label>
         <input
