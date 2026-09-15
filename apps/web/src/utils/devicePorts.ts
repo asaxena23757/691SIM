@@ -24,22 +24,26 @@ interface ImagePart {
 
 const PARTS = (portsData as unknown as { parts: Record<string, ImagePart> }).parts;
 
-/** Image folder + on-canvas width (px), roughly proportional to real hardware size. */
+/**
+ * Image folder + on-canvas width (px). Roughly proportional to real hardware
+ * size, except the smallest parts are drawn up so their terminals stay
+ * individually clickable.
+ */
 const DISPLAY: Record<string, { folder: string; width: number }> = {
   Battery: { folder: 'battery', width: 150 },
   MainBreaker: { folder: 'breaker120', width: 80 },
   PDP: { folder: 'pdp', width: 170 },
-  PDH: { folder: 'pdh', width: 130 },
+  PDH: { folder: 'pdh', width: 150 },
   VRM: { folder: 'vrm', width: 95 },
   RoboRIO: { folder: 'roborio', width: 185 },
   SystemCore: { folder: 'systemcore', width: 160 },
-  SparkMax: { folder: 'sparkmax', width: 62 },
-  SparkFlex: { folder: 'sparkflex', width: 66 },
-  TalonFX: { folder: 'talonfx', width: 80 },
-  CANcoder: { folder: 'cancoder', width: 52 },
-  Pigeon2: { folder: 'pigeon2', width: 48 },
-  Limelight: { folder: 'limelight', width: 72 },
-  PhotonVision: { folder: 'photonvision', width: 56 },
+  SparkMax: { folder: 'sparkmax', width: 84 },
+  SparkFlex: { folder: 'sparkflex', width: 88 },
+  TalonFX: { folder: 'talonfx', width: 100 },
+  CANcoder: { folder: 'cancoder', width: 80 },
+  Pigeon2: { folder: 'pigeon2', width: 74 },
+  Limelight: { folder: 'limelight', width: 84 },
+  PhotonVision: { folder: 'photonvision', width: 80 },
   OrangePi: { folder: 'orangepi', width: 105 },
   Radio: { folder: 'radio', width: 115 },
   EthernetSwitch: { folder: 'ethswitch', width: 110 },
@@ -92,7 +96,10 @@ const ALIASES: Record<string, Record<string, Alias>> = {
     ground_in: 'BATT-',
     ...channelAliases(24),
     ground_bus: 'CH0-',
-    vrm_out: 'CH22+',
+    // The PDH has no dedicated VRM terminal (a VRM normally hangs off a
+    // low-current channel), so this sits beside the low-current block rather
+    // than stacking on top of one of those channels' levers.
+    vrm_out: { nx: 0.4, ny: 0.8 },
     can_bus: 'CAN_H_IN',
     usb_c: 'USB-C',
   },
@@ -116,7 +123,7 @@ const ALIASES: Record<string, Record<string, Alias>> = {
     motor_b: 'PHASE_B',
     motor_c: 'PHASE_C',
     can_bus: 'DATA',
-    usb_c: { nx: 0.34, ny: 0.09 },
+    usb_c: { nx: 0.26, ny: 0.087 },
   },
   SparkFlex: {
     power_in: 'V+',
@@ -125,16 +132,16 @@ const ALIASES: Record<string, Record<string, Alias>> = {
     motor_b: 'PHASE_B',
     motor_c: 'PHASE_C',
     can_bus: 'DATA',
-    usb_c: { nx: 0.34, ny: 0.09 },
+    usb_c: { nx: 0.27, ny: 0.08 },
   },
   TalonFX: {
     power_in: 'PWR+',
     ground: 'PWR-',
     can_bus: 'CAN_H',
     // Phases are internal to the integrated motor -- no exposed terminals.
-    motor_a: { nx: 0.38, ny: 0.46 },
-    motor_b: { nx: 0.5, ny: 0.46 },
-    motor_c: { nx: 0.62, ny: 0.46 },
+    motor_a: { nx: 0.34, ny: 0.13 },
+    motor_b: { nx: 0.5, ny: 0.13 },
+    motor_c: { nx: 0.66, ny: 0.13 },
   },
   CANcoder: { power_in: 'PWR+', ground: 'PWR-', can_bus: 'CAN_H' },
   Pigeon2: { power_in: 'PWR+', ground: 'PWR-', can_bus: 'CAN_H' },
@@ -142,8 +149,8 @@ const ALIASES: Record<string, Record<string, Alias>> = {
   PhotonVision: {
     // A USB camera is bus-powered -- power and data share the one connector.
     eth_0: 'USB',
-    power_in: { nx: 0.4, ny: 0.82 },
-    ground: { nx: 0.6, ny: 0.82 },
+    power_in: { nx: 0.3, ny: 0.83 },
+    ground: { nx: 0.7, ny: 0.83 },
   },
   OrangePi: {
     power_in: 'USB_C_PWR',
@@ -207,22 +214,79 @@ export function deviceLayout(type: string): DeviceLayout | undefined {
   return layout;
 }
 
+/** Minimum center-to-center distance between terminal dots (dot is 9px wide). */
+const MIN_DOT_SPACING = 11;
+
 /**
- * Where a port sits on a device, in display px from its top-left corner.
- * Ports with no mapping fall back to a spread along the bottom edge so they
- * stay visible and connectable.
+ * Nudges dots apart until none are closer than MIN_DOT_SPACING. Small parts
+ * have connector pins spaced tighter than a clickable dot, so without this two
+ * terminals would stack and one would be unreachable. Moves are the minimum
+ * needed, so dots stay on (or right beside) their real terminal.
  */
-export function portOffset(
+function separateDots(points: { x: number; y: number }[], width: number, height: number): void {
+  for (let pass = 0; pass < 12; pass++) {
+    let moved = false;
+    for (let i = 0; i < points.length; i++) {
+      for (let j = i + 1; j < points.length; j++) {
+        const a = points[i]!;
+        const b = points[j]!;
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        let dist = Math.hypot(dx, dy);
+        if (dist >= MIN_DOT_SPACING) continue;
+        if (dist < 0.01) {
+          dx = 1;
+          dy = 0;
+          dist = 1;
+        }
+        const push = (MIN_DOT_SPACING - dist) / 2;
+        const ux = dx / dist;
+        const uy = dy / dist;
+        a.x -= ux * push;
+        a.y -= uy * push;
+        b.x += ux * push;
+        b.y += uy * push;
+        moved = true;
+      }
+    }
+    for (const p of points) {
+      p.x = Math.min(width, Math.max(0, p.x));
+      p.y = Math.min(height, Math.max(0, p.y));
+    }
+    if (!moved) break;
+  }
+}
+
+const offsetCache = new Map<string, Map<string, { x: number; y: number }>>();
+
+/**
+ * Where each of the given ports sits on a device, in display px from its
+ * top-left corner, with dots guaranteed not to overlap. Ports with no mapping
+ * fall back to a spread along the bottom edge so they stay visible and
+ * connectable. Returns undefined for types with no diagram.
+ */
+export function devicePortOffsets(
   type: string,
-  portId: string,
-  fallbackIndex: number,
-  fallbackCount: number,
-): { x: number; y: number } | undefined {
+  portIds: readonly string[],
+): Map<string, { x: number; y: number }> | undefined {
   const layout = deviceLayout(type);
   if (!layout) return undefined;
-  const mapped = layout.ports.get(portId);
-  if (mapped) return mapped;
 
-  const span = layout.width / (fallbackCount + 1);
-  return { x: span * (fallbackIndex + 1), y: layout.height - 4 };
+  const key = `${type}|${portIds.join(',')}`;
+  const cached = offsetCache.get(key);
+  if (cached) return cached;
+
+  const unmapped = portIds.filter((id) => !layout.ports.has(id));
+  const span = layout.width / (unmapped.length + 1);
+  const points = portIds.map((id) => {
+    const mapped = layout.ports.get(id);
+    if (mapped) return { ...mapped };
+    return { x: span * (unmapped.indexOf(id) + 1), y: layout.height - 4 };
+  });
+
+  separateDots(points, layout.width, layout.height);
+
+  const offsets = new Map(portIds.map((id, i) => [id, points[i]!]));
+  offsetCache.set(key, offsets);
+  return offsets;
 }

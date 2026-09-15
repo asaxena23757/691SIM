@@ -18,7 +18,7 @@ import {
   type Rect,
 } from '../utils/wireRouting';
 import { isPortConnected, portDisplayLabel } from '../utils/visiblePorts';
-import { deviceLayout, portOffset } from '../utils/devicePorts';
+import { deviceLayout, devicePortOffsets } from '../utils/devicePorts';
 import { deviceImage } from '../utils/deviceImages';
 import {
   isCompatibleTarget,
@@ -409,9 +409,8 @@ export function Canvas({ state }: CanvasProps) {
       const type = deviceTypes.get(deviceId);
       const def = type ? registry.get(type) : undefined;
       if (!device || !def || !type) return undefined;
-      const wired = canvasPorts(def);
-      const idx = wired.findIndex((p) => p.id === portId);
-      const offset = portOffset(type, portId, Math.max(0, idx), wired.length);
+      const offsets = devicePortOffsets(type, canvasPorts(def).map((p) => p.id));
+      const offset = offsets?.get(portId);
       if (!offset) return undefined;
       return {
         x: (device.position?.x ?? 0) + offset.x,
@@ -612,6 +611,10 @@ export function Canvas({ state }: CanvasProps) {
         const layout = deviceLayout(device.type);
         const image = deviceImage(device.type);
         const ports = def ? canvasPorts(def) : [];
+        const portOffsets = devicePortOffsets(
+          device.type,
+          ports.map((p) => p.id),
+        );
 
         return (
           <div
@@ -626,8 +629,8 @@ export function Canvas({ state }: CanvasProps) {
               onPointerDown={(e: PointerEvent) => onDevicePointerDown(device.id, e)}
             >
               {image && <img className="device-art" src={image} alt="" draggable={false} />}
-              {ports.map((port, idx) => {
-                const offset = portOffset(device.type, port.id, idx, ports.length);
+              {ports.map((port) => {
+                const offset = portOffsets?.get(port.id);
                 if (!offset) return null;
                 const connected = isPortConnected(device.id, port.id, model.connections);
                 const portFull = isPortAtCapacity(
